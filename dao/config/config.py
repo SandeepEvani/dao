@@ -33,12 +33,9 @@ class Config:
 
         ...
 
-    def _validate_raw_json(self):
-
-        ...
+    def _validate_raw_json(self): ...
 
     def _infer_configs(self):
-
         """
         Used to loop through the config file and create a new config
         :return:
@@ -48,14 +45,25 @@ class Config:
         self._dao_objects = {}
 
         for data_store in self.get_data_stores:
-            interface_module = import_module(data_store['interface_class_location'])
-            interface_class = getattr(interface_module, data_store['interface_class'])
+            interface_module = import_module(data_store["interface_class_location"])
+            interface_class = getattr(interface_module, data_store["interface_class"])
 
-            self._mutated_confs.update({data_store["interface_class"]: {"interface_class": interface_class,
-                                                                        "defaults": data_store["default_configs"]}})
+            self._mutated_confs.update(
+                {
+                    data_store["interface_class"]: {
+                        "interface_class": interface_class,
+                        "defaults": data_store["default_configs"],
+                    }
+                }
+            )
 
-            self._dao_objects.update({data_store["interface_class"]: call(interface_class,
-                                                                          data_store['default_configs'])})
+            self._dao_objects.update(
+                {
+                    data_store["interface_class"]: call(
+                        interface_class, data_store["default_configs"]
+                    )
+                }
+            )
 
     @property
     def get_data_stores(self):

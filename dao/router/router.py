@@ -14,17 +14,19 @@ class Router:
 
     def __init__(self, dao_objects: Dict):
 
-        methods = chain.from_iterable([self._list_methods_with_predicate(dao_object) for dao_object in dao_objects.values()])
+        methods = chain.from_iterable(
+            [
+                self._list_methods_with_predicate(dao_object)
+                for dao_object in dao_objects.values()
+            ]
+        )
 
         self._routes = self._get_method_signatures(methods)
         ...
 
-    def choose_method(self, sign):
+    def choose_method(self, sign): ...
 
-        ...
-
-    def routes(self):
-        ...
+    def routes(self): ...
 
     def _list_methods_with_predicate(self, dao_object):
         """
@@ -37,16 +39,17 @@ class Router:
 
         """
 
-        predicated_methods = filter(lambda x: x[0].startswith(self.write_methods_predicate) or
-                                    x[0].startswith(self.read_methods_predicate),
-                                    getmembers(dao_object, predicate=ismethod))
+        predicated_methods = filter(
+            lambda x: x[0].startswith(self.write_methods_predicate)
+            or x[0].startswith(self.read_methods_predicate),
+            getmembers(dao_object, predicate=ismethod),
+        )
 
         method_pointers = map(lambda x: x[1], predicated_methods)
 
         return method_pointers
 
     def _get_method_signatures(self, methods):
-
         """
         This method takes different functions and returns
         possible combinations of signatures
@@ -91,5 +94,3 @@ class Router:
         # return method_signatures
 
         ...
-
-

@@ -15,5 +15,3 @@ def logger():
     log.setLevel(logging.INFO)
 
     return log
-
-

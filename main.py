@@ -1,8 +1,6 @@
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     from dao.dao import DAO
 
     dao = DAO("config.json")
 
-    dao.write(data="Hello", destination='s3')
+    dao.write(data="Hello", destination="s3")
