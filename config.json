@@ -1,0 +1,13 @@
+{
+  "data_stores":
+  [
+    {
+      "interface_class": "S3",
+      "interface_class_location": "dao.S3",
+      "alias": "s3",
+      "default_configs": {
+        "bucket": "raw_zone"
+      }
+    }
+  ]
+}
