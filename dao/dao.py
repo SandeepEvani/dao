@@ -28,12 +28,11 @@ class DAO(IDAO):
         self._write_sig = inspect.signature(self.write)
         self._read_sig = inspect.signature(self.read)
 
-    def write(self, data, destination, *args, **kwargs):
+    def write(self, data, destination, **kwargs):
         """
 
         :param data:
         :param destination:
-        :param args:
         :param kwargs:
         :return:
         """
@@ -66,28 +65,4 @@ class DAO(IDAO):
 
         self.router.choose_method(inspect.Signature(parameters))
 
-        ...
-
     def read(self, source, *args, **kwargs): ...
-
-    def _get_confs(self, confs_location: str):
-        """
-
-        :param confs_location: User defined location of the configuration file
-        :return: A Config Object
-        """
-
-        with open(confs_location) as f:
-            confs = eval(f.read())
-
-        return confs
-
-    def _validate_confs(self) -> bool:
-        """
-        Validate the config object and return True if valid.
-        # TODO: build a validation logic, currently returns
-        # TODO: True without performing validation
-
-        :return: bool
-        """
-        return True
