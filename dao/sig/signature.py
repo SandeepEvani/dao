@@ -69,4 +69,87 @@ class Signature:
     def _class_name(method_):
         return method_.__self__.__class__.__name__
 
-    # def
+    @staticmethod
+    def create_input_signature(local_args, signature):
+        """
+
+        :param local_args:
+        :param signature:
+        :return:
+        """
+        parameters = []
+        Signature._flatten_kwargs(local_args, signature)
+        for arg_name, arg_value in local_args.items():
+
+            parameters.append(
+                Signature._parameter(
+                    arg_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, type(arg_value)
+                )
+            )
+
+        return inspect.Signature(parameters)
+
+    @staticmethod
+    def _parameter(name, kind, type_):
+        """
+
+        :param name:
+        :param kind:
+        :param type_:
+        :return:
+        """
+
+        return inspect.Parameter(name=name, kind=kind, annotation=type_)
+
+    @staticmethod
+    def _flatten_kwargs(local_args, signature) -> None:
+        """
+        loops through the parameters in the signature
+        object and adds the flattened VAR_KEYWORD
+        argument to the local_args
+
+        WARN: local_args is a mutable argument and is mutated but not returned
+
+        :param signature:
+        :param local_args:
+        :return: None
+        """
+
+        [
+            local_args.update(local_args.pop(k))
+            for k, v in signature.parameters.items()
+            if v.kind == inspect.Parameter.VAR_KEYWORD
+        ]
+
+    # @staticmethod
+    # def _create_input_signature(local_vars, signature):
+    #     """
+    #
+    #     :param local_vars:
+    #     :param signature:
+    #     :return:
+    #     """
+    #
+    #     parameters = []
+    #
+    #     for param_key, param_value in signature.parameters.items():
+    #
+    #         if local_vars.get(param_key):
+    #
+    #             if param_value.kind == inspect.Parameter.VAR_KEYWORD:
+    #                 for kw_param_key, kw_param_value in local_vars[param_key].items():
+    #                     parameters.append(
+    #                         inspect.Parameter(
+    #                             name=kw_param_key,
+    #                             kind=inspect._POSITIONAL_OR_KEYWORD,
+    #                             annotation=type(kw_param_value),
+    #                         )
+    #                     )
+    #             else:
+    #                 parameters.append(
+    #                     inspect.Parameter(
+    #                         name=param_key,
+    #                         kind=inspect._POSITIONAL_OR_KEYWORD,
+    #                         annotation=type(local_vars[param_key]),
+    #                     )
+    #                 )

@@ -10,6 +10,8 @@ from .config.config import Config
 from .dao_interface import IDAO
 from .router.router import Router
 
+from .sig.signature import Signature
+
 ########################################################
 
 
@@ -37,32 +39,9 @@ class DAO(IDAO):
         :return:
         """
 
-        local_vars = locals()
+        signature = Signature.create_input_signature(locals(), self._write_sig)
 
-        parameters = []
 
-        for param_key, param_value in self._write_sig.parameters.items():
-
-            if local_vars.get(param_key):
-
-                if param_value.kind == inspect._VAR_KEYWORD:
-                    for kw_param_key, kw_param_value in local_vars[param_key].items():
-                        parameters.append(
-                            inspect.Parameter(
-                                name=kw_param_key,
-                                kind=inspect._POSITIONAL_OR_KEYWORD,
-                                annotation=type(kw_param_value),
-                            )
-                        )
-                else:
-                    parameters.append(
-                        inspect.Parameter(
-                            name=param_key,
-                            kind=inspect._POSITIONAL_OR_KEYWORD,
-                            annotation=type(local_vars[param_key]),
-                        )
-                    )
-
-        self.router.choose_method(inspect.Signature(parameters))
 
     def read(self, source, *args, **kwargs): ...
+

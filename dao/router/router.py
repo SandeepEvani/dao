@@ -61,7 +61,7 @@ class Router:
 
         return Signature.build_method_signatures(methods)
 
-    def register_method_signatures(self):
+    def _register_method_signatures(self):
 
         # method_signatures = {}
         #
