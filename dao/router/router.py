@@ -5,7 +5,9 @@ from inspect import getmembers, ismethod
 from itertools import chain
 from typing import Dict
 
-from dao.sig.signature import Signature
+from pandas import DataFrame
+
+from dao.sig.signature2 import MutatedSignature
 
 
 class Router:
@@ -13,7 +15,6 @@ class Router:
     write_methods_predicate: str = "write"
 
     def __init__(self, dao_objects: Dict):
-
         methods = chain.from_iterable(
             [
                 self._list_methods_with_predicate(dao_object)
@@ -24,7 +25,28 @@ class Router:
         self._routes = self._get_method_signatures(methods)
         ...
 
-    def choose_method(self, sign): ...
+    def choose_method(self, local_args, signature):
+        """
+
+        :param local_args:
+        :param signature:
+        :return:
+        """
+
+        derived_signature = MutatedSignature.create_input_signature(
+            local_args, signature
+        )
+
+        search_space: DataFrame = self._routes.loc[
+            self._routes["length"] <= derived_signature.len_all_args, :
+        ]
+
+        for _, route in search_space.iterrows():
+            if derived_signature.is_compatible(route["signature"]):
+                return route
+
+        else:
+            raise Exception("No Compatible Method Found")
 
     def routes(self): ...
 
@@ -59,10 +81,9 @@ class Router:
 
         """
 
-        return Signature.build_method_signatures(methods)
+        return MutatedSignature.build_method_signatures(methods)
 
     def _register_method_signatures(self):
-
         # method_signatures = {}
         #
         # for target in self.targets.values():

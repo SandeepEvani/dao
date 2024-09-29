@@ -4,13 +4,12 @@
 
 ########################################################
 
-import inspect
+from inspect import signature
+from operator import call
 
 from .config.config import Config
 from .dao_interface import IDAO
 from .router.router import Router
-
-from .sig.signature import Signature
 
 ########################################################
 
@@ -27,8 +26,8 @@ class DAO(IDAO):
 
         self._router = Router(confs.get_dao_objects)
 
-        self._write_sig = inspect.signature(self.write)
-        self._read_sig = inspect.signature(self.read)
+        self._write_sig = signature(self.write)
+        self._read_sig = signature(self.read)
 
     def write(self, data, destination, **kwargs):
         """
@@ -39,9 +38,10 @@ class DAO(IDAO):
         :return:
         """
 
-        signature = Signature.create_input_signature(locals(), self._write_sig)
+        provided_args = locals().copy()
 
+        route = self._router.choose_method(provided_args, self._write_sig)
 
+        return call(route["method"], **provided_args)
 
     def read(self, source, *args, **kwargs): ...
-
