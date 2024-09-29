@@ -4,13 +4,15 @@
 import inspect
 from itertools import chain, combinations
 
+from pandas import DataFrame
+
 
 class Signature:
 
     def __init__(self): ...
 
     @staticmethod
-    def build_method_signatures(methods) -> list:
+    def build_method_signatures(methods) -> DataFrame:
         """
 
         :param methods:
@@ -35,7 +37,7 @@ class Signature:
                     }
                 )
 
-        return signatures
+        return DataFrame(signatures)
 
     @staticmethod
     def _get_all_combinations(signature):
@@ -69,25 +71,23 @@ class Signature:
     def _class_name(method_):
         return method_.__self__.__class__.__name__
 
-    @staticmethod
-    def create_input_signature(local_args, signature):
-        """
-
-        :param local_args:
-        :param signature:
-        :return:
-        """
-        parameters = []
-        Signature._flatten_kwargs(local_args, signature)
-        for arg_name, arg_value in local_args.items():
-
-            parameters.append(
-                Signature._parameter(
-                    arg_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, type(arg_value)
-                )
-            )
-
-        return inspect.Signature(parameters)
+    # @staticmethod
+    # def create_input_signature(local_args, signature):
+    #     """
+    #
+    #     :param local_args:
+    #     :param signature:
+    #     :return:
+    #     """
+    #
+    #     Signature._flatten_kwargs(local_args, signature)
+    #     parameters = [
+    #         Signature._parameter(arg_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, type(arg_value))
+    #         for arg_name, arg_value in local_args.items()
+    #         if arg_name in signature.parameters
+    #     ]
+    #
+    #     return inspect.Signature(parameters)
 
     @staticmethod
     def _parameter(name, kind, type_):
@@ -121,35 +121,42 @@ class Signature:
             if v.kind == inspect.Parameter.VAR_KEYWORD
         ]
 
-    # @staticmethod
-    # def _create_input_signature(local_vars, signature):
-    #     """
-    #
-    #     :param local_vars:
-    #     :param signature:
-    #     :return:
-    #     """
-    #
-    #     parameters = []
-    #
-    #     for param_key, param_value in signature.parameters.items():
-    #
-    #         if local_vars.get(param_key):
-    #
-    #             if param_value.kind == inspect.Parameter.VAR_KEYWORD:
-    #                 for kw_param_key, kw_param_value in local_vars[param_key].items():
-    #                     parameters.append(
-    #                         inspect.Parameter(
-    #                             name=kw_param_key,
-    #                             kind=inspect._POSITIONAL_OR_KEYWORD,
-    #                             annotation=type(kw_param_value),
-    #                         )
-    #                     )
-    #             else:
-    #                 parameters.append(
-    #                     inspect.Parameter(
-    #                         name=param_key,
-    #                         kind=inspect._POSITIONAL_OR_KEYWORD,
-    #                         annotation=type(local_vars[param_key]),
-    #                     )
-    #                 )
+    @staticmethod
+    def check_signature_compatibility(derived_signature, registered_signature):
+        """
+
+        :return:
+        """
+        ...
+
+    @staticmethod
+    def create_input_signature(local_vars, signature):
+        """
+
+        :param local_vars:
+        :param signature:
+        :return:
+        """
+
+        parameters = []
+
+        for param_key, param_value in signature.parameters.items():
+
+            if param_value.kind == inspect.Parameter.VAR_KEYWORD:
+                for kw_param_key, kw_param_value in local_vars[param_key].items():
+                    parameters.append(
+                        Signature._parameter(
+                            kw_param_key,
+                            inspect.Parameter.VAR_KEYWORD,
+                            type(kw_param_value),
+                        )
+                    )
+            else:
+                parameters.append(
+                    Signature._parameter(
+                        param_key,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        type(local_vars[param_key]),
+                    )
+                )
+        return inspect.Signature(parameters)
