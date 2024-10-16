@@ -60,7 +60,7 @@ class Config:
             self._dao_objects.update(
                 {
                     data_store["interface_class"]: call(
-                        interface_class, data_store["default_configs"]
+                        interface_class, **data_store["default_configs"]
                     )
                 }
             )
@@ -76,6 +76,11 @@ class Config:
     @property
     def get_dao_objects(self):
         return self._dao_objects
+
+    def get_dao_classes(self):
+
+        for key, value in self._mutated_confs.items():
+            yield key, value["interface_class"]
 
 
 if __name__ == "__main__":

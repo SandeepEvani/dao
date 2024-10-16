@@ -1,4 +1,4 @@
-# signature.py
+# signature_old.py
 # defines the signature object for methods and method parameters
 
 import inspect

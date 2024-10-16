@@ -3,18 +3,23 @@
 
 from inspect import getmembers, ismethod
 from itertools import chain
-from typing import Dict
 
 from pandas import DataFrame
 
-from dao.sig.signature2 import MutatedSignature
+from dao.config.config import Config
+from dao.signature.signature_factory import SignatureFactory
 
 
 class Router:
     read_methods_predicate: str = "read"
     write_methods_predicate: str = "write"
 
-    def __init__(self, dao_objects: Dict):
+    def __init__(self, confs: str):
+
+        confs = Config(confs)
+        self._register_prefixes(confs)
+
+        dao_objects = confs.get_dao_objects
         methods = chain.from_iterable(
             [
                 self._list_methods_with_predicate(dao_object)
@@ -23,22 +28,24 @@ class Router:
         )
 
         self._routes = self._get_method_signatures(methods)
-        ...
 
-    def choose_method(self, local_args, signature):
+    def choose_method(self, local_args, signature, prefix):
         """
 
         :param local_args:
         :param signature:
+        :param prefix:
         :return:
         """
 
-        derived_signature = MutatedSignature.create_input_signature(
+        derived_signature = SignatureFactory().create_argument_signature(
             local_args, signature
         )
 
         search_space: DataFrame = self._routes.loc[
-            self._routes["length"] <= derived_signature.len_all_args, :
+            (self._routes["length_non_var"] <= derived_signature.len_all_args)
+            & (self._routes["class"] == self._prefixes[prefix]),
+            :,
         ]
 
         for _, route in search_space.iterrows():
@@ -81,7 +88,20 @@ class Router:
 
         """
 
-        return MutatedSignature.build_method_signatures(methods)
+        return SignatureFactory().create_method_signature(methods)
+
+    def _register_prefixes(self, confs):
+        """
+
+        :return:
+        """
+        self._prefixes = {}
+        for dao_class_name, dao_class_pointer in confs.get_dao_classes():
+            if hasattr(dao_class_pointer, "registration_prefix"):
+                registration_prefix = dao_class_pointer.registration_prefix
+            else:
+                registration_prefix = dao_class_name.lower()
+            self._prefixes.update({registration_prefix: dao_class_name})
 
     def _register_method_signatures(self):
         # method_signatures = {}

@@ -22,9 +22,7 @@ class DAO(IDAO):
 
         :param confs_location: str
         """
-        confs = Config(confs_location)
-
-        self._router = Router(confs.get_dao_objects)
+        self._router = Router(confs_location)
 
         self._write_sig = signature(self.write)
         self._read_sig = signature(self.read)
@@ -39,8 +37,8 @@ class DAO(IDAO):
         """
 
         provided_args = locals().copy()
-
-        route = self._router.choose_method(provided_args, self._write_sig)
+        prefix = destination.split("://")[0]
+        route = self._router.choose_method(provided_args, self._write_sig, prefix)
 
         return call(route["method"], **provided_args)
 
