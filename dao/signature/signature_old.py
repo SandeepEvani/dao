@@ -8,7 +8,6 @@ from pandas import DataFrame
 
 
 class Signature:
-
     def __init__(self): ...
 
     @staticmethod
@@ -141,7 +140,6 @@ class Signature:
         parameters = []
 
         for param_key, param_value in signature.parameters.items():
-
             if param_value.kind == inspect.Parameter.VAR_KEYWORD:
                 for kw_param_key, kw_param_value in local_vars[param_key].items():
                     parameters.append(

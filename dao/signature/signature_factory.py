@@ -1,6 +1,8 @@
 # signature_factory.py
 # creates signature objects
 
+######################################################################
+
 import inspect
 from itertools import chain, combinations
 
@@ -9,11 +11,11 @@ from pandas import DataFrame
 from .argument_signature import ArgumentSignature
 from .method_signatures import MethodSignature
 
+######################################################################
+
 
 class SignatureFactory:
-
     def __new__(cls, *args, **kwargs):
-
         if not hasattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -21,7 +23,6 @@ class SignatureFactory:
     def __init__(self): ...
 
     def create_method_signature(self, methods) -> DataFrame:
-
         signatures = []
 
         for method in methods:
@@ -29,7 +30,6 @@ class SignatureFactory:
             possible_method_signatures = self._get_all_combinations(method_signature)
 
             for generated_method_signature in possible_method_signatures:
-
                 new_signature = MethodSignature(generated_method_signature)
                 signatures.append(
                     {
@@ -45,38 +45,34 @@ class SignatureFactory:
             ["length_non_var", "length_all_vars"], ascending=False
         )
 
-    def create_argument_signature(self, local_vars, signature):
+    def create_argument_signature(self, args, signature):
         """
 
-        :param local_vars:
+        :param args:
         :param signature:
         :return:
         """
 
         parameters = []
 
-        for param_key, param_value in signature.parameters.items():
+        for arg_key, arg_type in args.items():
+            if arg_key in signature.parameters:
 
-            if param_value.kind == inspect.Parameter.VAR_KEYWORD:
-                for kw_param_key, kw_param_value in local_vars[param_key].items():
-                    parameters.append(
-                        self._parameter(
-                            kw_param_key,
-                            inspect.Parameter.VAR_KEYWORD,
-                            type(kw_param_value),
-                        )
+                parameters.append(
+                    self._parameter(
+                        arg_key,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        arg_type,
                     )
+                )
             else:
                 parameters.append(
                     self._parameter(
-                        param_key,
-                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                        type(local_vars[param_key]),
+                        arg_key,
+                        inspect.Parameter.VAR_KEYWORD,
+                        arg_type,
                     )
                 )
-
-        self._filter_unwanted_args(local_vars, signature)
-        self._flatten_kwargs(local_vars, signature)
 
         return ArgumentSignature(inspect.Signature(parameters))
 
@@ -157,5 +153,11 @@ class SignatureFactory:
         :param local_args:
         :return: None
         """
-        keys = list(local_args.keys())
-        [local_args.pop(key) for key in keys if key not in signature.parameters.keys()]
+
+        filtered_args = {
+            key: value
+            for key, value in local_args.items()
+            if key in signature.parameters.keys()
+        }
+
+        return filtered_args

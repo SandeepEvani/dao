@@ -30,3 +30,8 @@ class IDAO(ABC):
         :return:
         """
         ...
+
+    def __repr__(self):
+
+        return "<DAO()>"
+

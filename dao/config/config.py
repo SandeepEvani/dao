@@ -7,7 +7,6 @@ from operator import call
 
 
 class Config:
-
     def __init__(self, file_path: str):
         """
 
@@ -53,15 +52,22 @@ class Config:
                     data_store["interface_class"]: {
                         "interface_class": interface_class,
                         "defaults": data_store["default_configs"],
+                        "identifier": data_store["identifier"]
+
                     }
                 }
             )
 
             self._dao_objects.update(
                 {
-                    data_store["interface_class"]: call(
-                        interface_class, **data_store["default_configs"]
-                    )
+                    data_store["interface_class"]:
+                    {
+                        "interface_class": interface_class,
+                        "defaults": data_store["default_configs"],
+                        "identifier": data_store["identifier"],
+                        "interface_object": call(interface_class, **data_store["default_configs"])
+
+                    }
                 }
             )
 
@@ -78,7 +84,6 @@ class Config:
         return self._dao_objects
 
     def get_dao_classes(self):
-
         for key, value in self._mutated_confs.items():
             yield key, value["interface_class"]
 

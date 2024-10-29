@@ -12,7 +12,6 @@ from .signature import Signature
 
 
 class ArgumentSignature(Signature):
-
     def is_compatible(self, other: MethodSignature) -> bool:
         """
         Input is verified against registered
@@ -20,7 +19,7 @@ class ArgumentSignature(Signature):
         :return:
         """
 
-        if type(other) != MethodSignature:
+        if type(other) is not MethodSignature:
             raise NotImplementedError(
                 f"Cannot check compatibility of type {type(self)} with type {type(other)}"
             )

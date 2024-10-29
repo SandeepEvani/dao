@@ -7,7 +7,6 @@ import inspect
 
 
 class Signature:
-
     def __init__(self, signature: inspect.Signature):
         """
 

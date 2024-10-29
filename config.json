@@ -4,10 +4,16 @@
     {
       "interface_class": "S3",
       "interface_class_location": "dao.S3",
-      "alias": "s3",
+      "identifier": "s3",
       "default_configs": {
         "bucket": "raw_zone"
       }
+    },
+    {
+      "interface_class": "Redshift",
+      "interface_class_location": "dao.redshift",
+      "identifier": "rs",
+      "default_configs": {}
     }
   ]
 }

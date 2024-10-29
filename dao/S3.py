@@ -1,5 +1,4 @@
 class S3:
-
     registration_prefix = "s3"
 
     def __init__(self, confs=None, **kwargs):
