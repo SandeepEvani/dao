@@ -1,0 +1,14 @@
+{
+  "tables": {
+    "customer": {
+      "data_store": "raw",
+      "primary_keys": "customer_id",
+      "precombine_field": "timestamp"
+    },
+    "sales": {
+      "data_store": "raw",
+      "primary_keys": "sale_id",
+      "partition_keys": "year,month"
+    }
+  }
+}

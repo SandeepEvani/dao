@@ -1,9 +1,13 @@
-# signature2
-# version2 of signature_old.py
+# signature
+# defines the signature class
+
+######################################################################
 
 from __future__ import annotations
 
 import inspect
+
+######################################################################
 
 
 class Signature:
@@ -48,3 +52,7 @@ class Signature:
 
             elif parameter_value.kind == inspect.Parameter.VAR_POSITIONAL:
                 self.var_pos_args = [parameter_key]
+
+    def __repr__(self):
+
+        return self.signature.__repr__()

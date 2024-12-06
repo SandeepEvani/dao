@@ -3,14 +3,13 @@
 
 ########################################################
 
-from typing import Callable
 from sys import _getframe
+from typing import Callable
 
-from .router.router import Router
+from .data_store.data_store_factory import DataStoreFactory
 from .config.config import Config
+from .router.router import Router
 from .signature.signature_factory import SignatureFactory
-from .utils import segregate_args
-from pandas import DataFrame
 
 ########################################################
 
@@ -31,10 +30,11 @@ class DAOMediator:
 
         :param config_location:
         """
+        self.data_stores = dict(DataStoreFactory(config_location).create_data_stores())
 
-        self.dao_config = Config(config_location)
+        # self.dao_config = Config(config_location)
         self.signature_factory = SignatureFactory()
-        self.dao_router = Router(self.dao_config)
+        self.dao_router = Router(self.data_stores)
 
         self.operation = {}
         self.datastore = {}
@@ -54,12 +54,11 @@ class DAOMediator:
 
         return True
 
-    def mediate(self, method_args, confs, data_store) -> Callable:
+    def mediate(self, method_args, confs) -> Callable:
         """
         choose_route method is used to choose the required data access method
         based on the method args provided to the operator function
 
-        :param data_store:
         :param confs:
         :param method_args:
         :return:
@@ -69,19 +68,14 @@ class DAOMediator:
         caller = _getframe(1).f_code.co_name
         signature = self.operation.get(caller)
 
-        argument_signature = self.signature_factory.create_argument_signature(method_args, signature)
+        argument_signature = self.signature_factory.create_argument_signature(
+            method_args, signature
+        )
+        table = method_args.get("table")
+
+        data_store = table.data_store.name
 
         route = self.dao_router.choose_route(argument_signature, data_store, confs)
 
-        return route['method']
+        return route["method"]
 
-    def router(self, signature, data_store, conf_args):
-        """
-
-        :param signature:
-        :param data_store:
-        :param conf_args:
-        :return:
-        """
-
-        ...

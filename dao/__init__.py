@@ -1,3 +1,1 @@
-from utils.logger.root_logger import logger
-
-log = logger()
+from dao.dao import DAO

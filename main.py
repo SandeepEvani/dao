@@ -1,10 +1,11 @@
+from dao import DAO
+from catalog import catalog
+
+
 if __name__ == "__main__":
-    from dao.dao import DAO
 
-    dao = DAO("config.json")
-
-    result = dao.write(
-        data="Hello", destination="s3://bucket_name/key", dao_interface_class="Redshift"
-    )
+    dao = DAO("data_stores.json")
+    table = catalog.get_table_object('raw.customer')
+    result = dao.write(data="Hello", table=table, arg1=1)
 
     print(result)

@@ -52,21 +52,20 @@ class Config:
                     data_store["interface_class"]: {
                         "interface_class": interface_class,
                         "defaults": data_store["default_configs"],
-                        "identifier": data_store["identifier"]
-
+                        "identifier": data_store["identifier"],
                     }
                 }
             )
 
             self._dao_objects.update(
                 {
-                    data_store["interface_class"]:
-                    {
+                    data_store["interface_class"]: {
                         "interface_class": interface_class,
                         "defaults": data_store["default_configs"],
                         "identifier": data_store["identifier"],
-                        "interface_object": call(interface_class, **data_store["default_configs"])
-
+                        "interface_object": call(
+                            interface_class, **data_store["default_configs"]
+                        ),
                     }
                 }
             )
@@ -89,6 +88,6 @@ class Config:
 
 
 if __name__ == "__main__":
-    c = Config(r"C:\Evani\DAO\config.json")
+    c = Config(r"/data_stores.json")
 
     print(c)

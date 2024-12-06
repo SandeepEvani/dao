@@ -18,22 +18,13 @@ class Router:
     read_methods_predicate: str = "read"
     write_methods_predicate: str = "write"
 
-    def __init__(self, confs):
+    def __init__(self, data_stores):
         """
 
         :param confs:
         """
 
-        dao_objects = confs.get_dao_objects
-
-        methods = chain.from_iterable(
-            [
-                self._list_methods_with_predicate(dao_object)
-                for dao_object in dao_objects.values()
-            ]
-        )
-
-        self._routes = self._get_method_signatures(methods)
+        self.routes = self.create_routes(data_stores)
 
         self.__operation = {}
         self.__datastore = {}
@@ -78,13 +69,14 @@ class Router:
         :return:
         """
 
-        return self._routes.loc[
-            (self._routes["class"] == datastore_class)
-            & (self._routes["length_non_var"] <= length)]
+        return self.routes.loc[
+            (self.routes["identifier"] == datastore_class)
+            & (self.routes["length_non_var_args"] <= length)
+        ]
 
     def _list_methods_with_predicate(self, dao_object):
         """
-        For a DAO class as an input, this function returns a iterable of
+        For a DAO class as an input, this function returns an iterable of
         functions that have a prefix <Router.read_methods_predicate> or
         <Router.write_methods_predicate>
 
@@ -95,11 +87,15 @@ class Router:
 
         predicated_methods = filter(
             lambda x: x[0].startswith(self.write_methods_predicate)
-            or x[0].startswith(self.read_methods_predicate),
-            getmembers(dao_object["interface_object"], predicate=ismethod),
+            or x[0].startswith(self.read_methods_predicate)
+            or (
+                getattr(x[1], "__dao_register__", False) is True
+                and getattr(x[1], "__dao_register_params__", None) is not None
+            ),
+            getmembers(dao_object, predicate=ismethod),
         )
 
-        method_pointers = map(lambda x: x[1], predicated_methods)
+        method_pointers = list(map(lambda x: x[1], predicated_methods))
 
         return method_pointers
 
@@ -130,3 +126,59 @@ class Router:
 
         else:
             raise Exception("No Compatible Method Found")
+
+    def create_routes(self, data_stores):
+        """
+
+        :return:
+        """
+        dao_objects = chain.from_iterable(
+            (data_store.get_details() for data_store in data_stores.values())
+        )
+        route_table = DataFrame(dao_objects, columns=["identifier", "interface_class", "interface_object"])
+
+        route_table["method"] = route_table["interface_object"].apply(
+            self._list_methods_with_predicate
+        )
+        route_table = route_table.explode("method")
+
+        route_table["signature"] = route_table["method"].apply(
+            SignatureFactory().create_method_signature
+        )
+
+        route_table["method_type"] = route_table["method"].apply(self._get_method_type)
+        route_table["preference"] = route_table["method"].apply(self._get_method_preference)
+
+        route_table = route_table.explode("signature")
+
+        route_table["length_non_var_args"] = route_table["signature"].apply(
+            lambda x: x.len_non_var_args
+        )
+        route_table["length_all_args"] = route_table["signature"].apply(
+            lambda x: x.len_all_args
+        )
+
+        return route_table.sort_values(
+            ["identifier", "length_non_var_args", "preference", "length_all_args"], ascending=[True, False,True, True]
+        ).reset_index(drop=True)
+
+    def _get_method_type(self, function):
+        if hasattr(function, "__dao_register_params__"):
+            return getattr(function, "__dao_register_params__")[0]
+
+        elif function.__name__.startswith("read"):
+            return "read"
+
+        elif function.__name__.startswith("write"):
+            return "write"
+
+        else:
+            raise Exception("Cannot get the method type")
+
+    def _get_method_preference(self, function):
+
+        if hasattr(function, "__dao_register_params__"):
+            return getattr(function, "__dao_register_params__")[1]
+
+        else:
+            return 0

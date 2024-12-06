@@ -4,13 +4,13 @@
 
 ########################################################
 
-from typing import Any
 from operator import call
 from sys import _getframe
+from typing import Any
 
 from .dao_interface import IDAO
 from .dao_mediator import DAOMediator
-from .utils import flatten_kwargs, get_uri_prefix, segregate_args
+from .utils import flatten_kwargs, get_uri_prefix
 
 ########################################################
 
@@ -24,14 +24,14 @@ class DAO(IDAO):
     operation. All this heavy lifting is abstracted from the user using the package and gives an easy interface while
     writing the main application code.
 
-    # >>> from dao import DAO
-    # >>> dao = DAO("/path/to/config.json")
-    # >>> # writing data to a s3 bucket
-    # >>> dao.write(data="Write this data", destination='s3://my-bucket/data.txt')
+    >>> from dao import DAO
+    >>> dao = DAO("/path/to/data_stores.json")
+    >>> # writing data to a s3 bucket
+    >>> dao.write(data="Write this data", destination='s3://my-bucket/data.txt')
 
     """
 
-    __INTERFACE_IDENTIFIER = "dao_interface_identifier"
+    __INTERFACE_IDENTIFIER = "dao_interface_class"
 
     def __new__(cls, *args, **kwargs):
         # Creates a singleton class of DAO
@@ -49,13 +49,13 @@ class DAO(IDAO):
         self.__mediator.register_signature(self.write, "destination")
         self.__mediator.register_signature(self.read, "source")
 
-    def write(self, data, destination, **kwargs) -> Any:
+    def write(self, data, table, **kwargs) -> Any:
         """
         Triggers the appropriate writer method across all the
         registered methods based on the input parameters received
 
         :param data:    The data object that has to be written to a destination
-        :param destination: The destination is a structured URI to where the data has to written to.
+        :param table: The destination is a structured URI to where the data has to written to.
                             common URI structure :: {prefix}://{upper_level_location}/{lower_level_location}
                             some examples include :-
                             - s3://my-sample-bucket/my_sample_file.txt
@@ -76,25 +76,59 @@ class DAO(IDAO):
         # Take a snapshot of local args. i.e. the provided args
         provided_args = locals().copy()
 
-        # flatten the kwargs
-        flattened_args = self.__flatten_args(provided_args)
-
-        # separate both the method args and the conf args
-        method_args, dao_conf_args = segregate_args(flattened_args)
-
-        data_store = self.__resolve_data_store(flattened_args, destination)
-
-        # Replace the argument values with the type using the __create_arg_set
-        modified_method_args = self.__create_arg_set(method_args)
+        filtered_provided_args,  method_args, conf_args = self.__preprocess_args(provided_args)
 
         # choosing the required method by using the router
-        method = self.__mediator.mediate(modified_method_args, dao_conf_args, data_store)
+        method = self.__mediator.mediate(
+            method_args, conf_args
+        )
 
         result = call(method, **method_args)
 
-        return
+        return result
 
     def read(self, source, **kwargs) -> Any: ...
+
+    def __preprocess_args(self, provided_args):
+        """
+
+        :param provided_args:
+        :return:
+        """
+        import inspect
+
+        caller = _getframe(1).f_code.co_name
+        signature = self.__mediator.operation.get(caller)
+
+        provided_args = provided_args.copy()
+
+        self.__filter_args(provided_args, signature)
+
+        kwarg_name: str = [
+            key
+            for key, value in signature.parameters.items()
+            if value.kind == inspect.Parameter.VAR_KEYWORD
+        ][0]
+
+        kwarg_value = provided_args.pop(kwarg_name)
+
+        provided_args.update(kwarg_value)
+
+        method_args, conf_args = self.__segregate_args(provided_args)
+
+        return provided_args, method_args, conf_args
+
+    def __filter_args(self, args, signature):
+        """
+
+        :param args:
+        :param signature:
+        :return:
+        """
+        keys = list(args.keys())
+        for arg_name in keys:
+            if arg_name not in signature.parameters:
+                args.pop(arg_name)
 
     def __create_arg_set(self, args):
         """
@@ -105,13 +139,9 @@ class DAO(IDAO):
         :return:
         """
 
-        caller = _getframe(1).f_code.co_name
-        signature = self.__mediator.operation.get(caller)
+        return {arg_name: type(arg_value) for arg_name, arg_value in args.items()}
 
-        return {arg_name: type(arg_value) for arg_name, arg_value in args.items()
-                if arg_name in signature.parameters}
-
-    def __resolve_data_store(self, args,  data_store_uri):
+    def __resolve_data_store(self, args, data_store_uri):
         """
         Get the data store mentioned in the 'datastore_uri'
         resolve_data_store first looks for the explicit declaration of the identifier through the
@@ -124,11 +154,8 @@ class DAO(IDAO):
         if self.__INTERFACE_IDENTIFIER in args:
             return args.get(self.__INTERFACE_IDENTIFIER)
 
-        elif (datastore := get_uri_prefix(data_store_uri)) is not None:
-            return datastore
-
         else:
-            raise Exception("No Data Store Identifier found.")
+            return args.get("table").data_store.name
 
     def __flatten_args(self, args):
         """
@@ -140,9 +167,32 @@ class DAO(IDAO):
         caller = _getframe(1).f_code.co_name
         signature = self.__mediator.operation.get(caller)
 
-        kwarg_name: str = [key for key, value in signature.parameters.items()
-                           if value.kind == inspect.Parameter.VAR_KEYWORD][0]
+        self.__filter_args(args, signature)
+
+        kwarg_name: str = [
+            key
+            for key, value in signature.parameters.items()
+            if value.kind == inspect.Parameter.VAR_KEYWORD
+        ][0]
 
         # Flatten the keyword argument first
         return flatten_kwargs(args, kwarg_name)
 
+    def __segregate_args(self, args, segregation_prefix="dao_"):
+        """
+
+        :param args:
+        :param segregation_prefix:
+        :return:
+        """
+
+        confs = {}
+        method_args = {}
+
+        for arg_key in args:
+            if arg_key.startswith(segregation_prefix):
+                confs.update({arg_key: args[arg_key]})
+            else:
+                method_args.update({arg_key: args[arg_key]})
+
+        return method_args, confs

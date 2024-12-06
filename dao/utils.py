@@ -48,26 +48,6 @@ def filter_args(args, parameters):
     return filtered_args
 
 
-def segregate_args(args, segregation_prefix="dao_"):
-    """
-
-    :param args:
-    :param segregation_prefix:
-    :return:
-    """
-
-    confs = {}
-    method_args = {}
-
-    for arg_key in args:
-        if arg_key.startswith(segregation_prefix):
-            confs.update({arg_key: args[arg_key]})
-        else:
-            method_args.update({arg_key: args[arg_key]})
-
-    return method_args, confs
-
-
 def inject_metadata(dao_operation):
     """
     This Decorator will inject the metadata of the function into the key word args.
