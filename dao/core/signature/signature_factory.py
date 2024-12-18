@@ -1,15 +1,11 @@
 # signature_factory.py
 # creates signature objects
 
-######################################################################
-
 import inspect
 from itertools import chain, combinations
 
 from .argument_signature import ArgumentSignature
 from .method_signatures import MethodSignature
-
-######################################################################
 
 
 class SignatureFactory:

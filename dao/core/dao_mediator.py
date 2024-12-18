@@ -1,17 +1,12 @@
 # dao_mediator.py
 # mediates different classes for the dao
 
-########################################################
-
 from sys import _getframe
 from typing import Callable
 
-from .data_store.data_store_factory import DataStoreFactory
-from .config.config import Config
-from .router.router import Router
-from .signature.signature_factory import SignatureFactory
-
-########################################################
+from dao.data_store.data_store_factory import DataStoreFactory
+from dao.core.router.router import Router
+from dao.core.signature.signature_factory import SignatureFactory
 
 
 class DAOMediator:
@@ -71,11 +66,10 @@ class DAOMediator:
         argument_signature = self.signature_factory.create_argument_signature(
             method_args, signature
         )
-        table = method_args.get("table")
+        table = method_args.get("data_object")
 
         data_store = table.data_store.name
 
         route = self.dao_router.choose_route(argument_signature, data_store, confs)
 
         return route["method"]
-

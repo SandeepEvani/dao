@@ -1,7 +1,7 @@
 # table_object.py
 # represents the table data object
 
-from dao.data_object.data_object import DataObject
+from dao.data_object import DataObject
 
 
 class TableObject(DataObject):
@@ -17,7 +17,7 @@ class TableObject(DataObject):
         cluster_keys=None,
         precombine_keys=None,
         index_keys=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(name, data_store)
         self.prefix = prefix
@@ -32,4 +32,4 @@ class TableObject(DataObject):
             setattr(self, attribute, value)
 
     def __repr__(self):
-        return f"Table( {self.data_store.name}.{self.name} )"
+        return f"Table({self.data_store.name}.{self.name})"

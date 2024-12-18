@@ -1,18 +1,12 @@
 # File : dao.py
 # Description : Implementation of the DAO
 
-
-########################################################
-
 from operator import call
 from sys import _getframe
 from typing import Any
 
-from .dao_interface import IDAO
-from .dao_mediator import DAOMediator
-from .utils import flatten_kwargs, get_uri_prefix
-
-########################################################
+from dao.core.dao_interface import IDAO
+from dao.core.dao_mediator import DAOMediator
 
 
 class DAO(IDAO):
@@ -31,11 +25,12 @@ class DAO(IDAO):
 
     """
 
-    __INTERFACE_IDENTIFIER = "dao_interface_class"
+    INTERFACE_IDENTIFIER = "dao_interface_class"
+    _instance = None
 
     def __new__(cls, *args, **kwargs):
         # Creates a singleton class of DAO
-        if not hasattr(cls, "_instance"):
+        if not getattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
         return cls._instance
 
@@ -49,13 +44,13 @@ class DAO(IDAO):
         self.__mediator.register_signature(self.write, "destination")
         self.__mediator.register_signature(self.read, "source")
 
-    def write(self, data, table, **kwargs) -> Any:
+    def write(self, data, data_object, **kwargs) -> Any:
         """
         Triggers the appropriate writer method across all the
         registered methods based on the input parameters received
 
         :param data:    The data object that has to be written to a destination
-        :param table: The destination is a structured URI to where the data has to written to.
+        :param data_object: The destination is a structured URI to where the data has to written to.
                             common URI structure :: {prefix}://{upper_level_location}/{lower_level_location}
                             some examples include :-
                             - s3://my-sample-bucket/my_sample_file.txt
@@ -76,12 +71,12 @@ class DAO(IDAO):
         # Take a snapshot of local args. i.e. the provided args
         provided_args = locals().copy()
 
-        filtered_provided_args,  method_args, conf_args = self.__preprocess_args(provided_args)
+        filtered_provided_args, method_args, conf_args = self.__preprocess_args(
+            provided_args
+        )
 
         # choosing the required method by using the router
-        method = self.__mediator.mediate(
-            method_args, conf_args
-        )
+        method = self.__mediator.mediate(method_args, conf_args)
 
         result = call(method, **method_args)
 
@@ -141,42 +136,20 @@ class DAO(IDAO):
 
         return {arg_name: type(arg_value) for arg_name, arg_value in args.items()}
 
-    def __resolve_data_store(self, args, data_store_uri):
+    def __resolve_data_store(self, args):
         """
         Get the data store mentioned in the 'datastore_uri'
         resolve_data_store first looks for the explicit declaration of the identifier through the
         'dao_interface_identifier' parameter and then looks at the data_store_uri
         if the interface identifier is not provided
 
-        :param data_store_uri:
+        :param args:
         :return:
         """
-        if self.__INTERFACE_IDENTIFIER in args:
-            return args.get(self.__INTERFACE_IDENTIFIER)
-
+        if self.INTERFACE_IDENTIFIER in args:
+            return args.get(self.INTERFACE_IDENTIFIER)
         else:
-            return args.get("table").data_store.name
-
-    def __flatten_args(self, args):
-        """
-
-        :return:
-        """
-        import inspect
-
-        caller = _getframe(1).f_code.co_name
-        signature = self.__mediator.operation.get(caller)
-
-        self.__filter_args(args, signature)
-
-        kwarg_name: str = [
-            key
-            for key, value in signature.parameters.items()
-            if value.kind == inspect.Parameter.VAR_KEYWORD
-        ][0]
-
-        # Flatten the keyword argument first
-        return flatten_kwargs(args, kwarg_name)
+            return args.get("data_store").data_store.name
 
     def __segregate_args(self, args, segregation_prefix="dao_"):
         """

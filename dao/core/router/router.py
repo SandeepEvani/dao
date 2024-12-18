@@ -1,20 +1,15 @@
 # router.py
 # routes to appropriate data access method
 
-######################################################################
-
 from inspect import getmembers, ismethod
 from itertools import chain
 
 from pandas import DataFrame, Series
 
-from dao.signature.signature_factory import SignatureFactory
-
-######################################################################
+from dao.core.signature.signature_factory import SignatureFactory
 
 
 class Router:
-
     read_methods_predicate: str = "read"
     write_methods_predicate: str = "write"
 
@@ -135,7 +130,9 @@ class Router:
         dao_objects = chain.from_iterable(
             (data_store.get_details() for data_store in data_stores.values())
         )
-        route_table = DataFrame(dao_objects, columns=["identifier", "interface_class", "interface_object"])
+        route_table = DataFrame(
+            dao_objects, columns=["identifier", "interface_class", "interface_object"]
+        )
 
         route_table["method"] = route_table["interface_object"].apply(
             self._list_methods_with_predicate
@@ -147,7 +144,9 @@ class Router:
         )
 
         route_table["method_type"] = route_table["method"].apply(self._get_method_type)
-        route_table["preference"] = route_table["method"].apply(self._get_method_preference)
+        route_table["preference"] = route_table["method"].apply(
+            self._get_method_preference
+        )
 
         route_table = route_table.explode("signature")
 
@@ -159,7 +158,8 @@ class Router:
         )
 
         return route_table.sort_values(
-            ["identifier", "length_non_var_args", "preference", "length_all_args"], ascending=[True, False,True, True]
+            ["identifier", "length_non_var_args", "preference", "length_all_args"],
+            ascending=[True, False, True, True],
         ).reset_index(drop=True)
 
     def _get_method_type(self, function):

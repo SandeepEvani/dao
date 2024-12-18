@@ -1,13 +1,9 @@
 # signature
 # defines the signature class
 
-######################################################################
-
 from __future__ import annotations
 
 import inspect
-
-######################################################################
 
 
 class Signature:

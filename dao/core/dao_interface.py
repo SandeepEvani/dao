@@ -1,12 +1,7 @@
 # File : dao_interface.py
 # Description : Defines the DAO Interface
 
-
-########################################################
-
 from abc import ABC, abstractmethod
-
-########################################################
 
 
 class IDAO(ABC):

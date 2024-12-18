@@ -1,4 +1,4 @@
-# registrar.py
+# dao_registrar.py
 # registers methods from the interface class to the DAO
 
 
