@@ -6,6 +6,11 @@ from dao.data_object import DataObject
 
 class TableObject(DataObject):
 
+    """
+    A Table Object is a representation of the tabular data structures stored in
+    various data stores such as databases, warehouses, and data lakes
+    """
+
     def __init__(
         self,
         name,
@@ -19,6 +24,21 @@ class TableObject(DataObject):
         index_keys=None,
         **kwargs,
     ):
+        """
+        Initializes the Data Store class
+
+        :param name: Identifier of the table object
+        :param data_store: The Data Store the table belongs to
+        :param columns: columns the table contains
+        :param prefix:
+        :param primary_keys:
+        :param partition_keys:
+        :param cluster_keys:
+        :param precombine_keys:
+        :param index_keys:
+        :param kwargs:
+        """
+
         super().__init__(name, data_store)
         self.prefix = prefix
         self.columns = columns
