@@ -1,10 +1,11 @@
 # data_store_factory.py
 # Creates instances of DataStore
 
-from .data_store import DataStore
-from json import load
 from importlib import import_module
+from json import load
 from operator import call
+
+from .data_store import DataStore
 
 
 class DataStoreFactory:

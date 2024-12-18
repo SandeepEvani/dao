@@ -1,9 +1,10 @@
 # catalog.py
 # creates instances of the TableObject
 
-from dao.data_store import DataStore
 from json import load
+
 from dao.data_object import TableObject
+from dao.data_store import DataStore
 
 
 class Catalog:
@@ -31,7 +32,9 @@ class Catalog:
 
                 if table in tables:
                     properties = tables.get(table)
-                    return TableObject(name=table, data_store=data_store_object, **properties)
+                    return TableObject(
+                        name=table, data_store=data_store_object, **properties
+                    )
 
         raise Exception("Some Issue")
 
