@@ -4,7 +4,7 @@
 
 class DataObject:
     """
-    A Data Object is a virtual object which represents an true object in the data store
+    A Data Object is a virtual object which represents a true object in the data store
     every Data Object must have a name and a data store
     """
 

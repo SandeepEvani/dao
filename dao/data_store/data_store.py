@@ -22,7 +22,9 @@ class DataStore:
         return [self.interface_object]
 
     def get_details(self):
-        for interface_class, interface_object in [(self.interface_class, self.interface_object), ]:
+        for interface_class, interface_object in [
+            (self.interface_class, self.interface_object),
+        ]:
             yield self.name, interface_class, interface_object
 
     @classmethod

@@ -1,1 +1,1 @@
-from dao.dao import DAO
+from dao.core.dao import DAO
