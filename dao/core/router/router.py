@@ -10,13 +10,14 @@ from dao.core.signature.signature_factory import SignatureFactory
 
 
 class Router:
+
     read_methods_predicate: str = "read"
     write_methods_predicate: str = "write"
 
     def __init__(self, data_stores):
         """
 
-        :param confs:
+        :param data_stores:
         """
 
         self.routes = self.create_routes(data_stores)

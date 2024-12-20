@@ -23,6 +23,7 @@ class DataStoreFactory:
         """
         try:
             self.confs = load(open(ds_conf_loc))
+            # TODO : JSON Schema validation
         except Exception as error:
             print("Error reading the config file", error)
 
