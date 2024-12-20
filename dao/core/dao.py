@@ -25,7 +25,7 @@ class DAO(IDAO):
 
     """
 
-    INTERFACE_IDENTIFIER = "dao_interface_class"
+    __INTERFACE_IDENTIFIER = "dao_interface_class"
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -34,11 +34,18 @@ class DAO(IDAO):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, config_location: str):
+    def init(self, config_location: str) -> None:
         """
         Initializes the DAO Class
-        :param config_location: str
+
+        :param config_location:
+        :return: None
         """
+
+        if getattr(self, self._get_private_attr_name("__mediator"), False):
+            raise Exception("Cannot re-initialize the DAO object")
+
+        # Initialize the DAOMediator
         self.__mediator = DAOMediator(config_location)
 
         self.__mediator.register_signature(self.write, "destination")
@@ -146,8 +153,8 @@ class DAO(IDAO):
         :param args:
         :return:
         """
-        if self.INTERFACE_IDENTIFIER in args:
-            return args.get(self.INTERFACE_IDENTIFIER)
+        if self.__INTERFACE_IDENTIFIER in args:
+            return args.get(self.__INTERFACE_IDENTIFIER)
         else:
             return args.get("data_store").data_store.name
 
@@ -169,3 +176,7 @@ class DAO(IDAO):
                 method_args.update({arg_key: args[arg_key]})
 
         return method_args, confs
+
+    def _get_private_attr_name(self, attr):
+        # Dynamically generate the mangled name for the private attribute
+        return f"_{self.__class__.__name__}{attr}"
