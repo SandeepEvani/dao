@@ -66,9 +66,9 @@ class DAOMediator:
         argument_signature = self.signature_factory.create_argument_signature(
             method_args, signature
         )
-        table = method_args.get("data_object")
+        data_object = method_args.get("data_object")
 
-        data_store = table.data_store.name
+        data_store = data_object.data_store.name
 
         route = self.dao_router.choose_route(argument_signature, data_store, confs)
 
