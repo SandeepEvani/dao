@@ -3,7 +3,7 @@
 
 from importlib import import_module
 from json import load
-from operator import call
+# from operator import call
 
 from .data_store import DataStore
 
@@ -48,9 +48,9 @@ class DataStoreFactory:
 
             # Instantiate the interface class
             if properties == {}:
-                interface_object = call(interface_class)
+                interface_object = interface_class()
             else:
-                interface_object = call(interface_class, **properties["default_configs"])
+                interface_object = interface_class(**properties["default_configs"])
 
             # Create the data store object
             data_store = DataStore(identifier)
