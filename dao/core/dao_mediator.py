@@ -10,6 +10,11 @@ from dao.data_store.data_store_factory import DataStoreFactory
 
 
 class DAOMediator:
+    """
+    Mediator is used to interoperate between the DAO class and the
+    Signature and Router classes providing a common hub for all the
+    involved classes
+    """
 
     _instance = None
 
@@ -22,30 +27,31 @@ class DAOMediator:
 
     def __init__(self, config_location: str):
         """
+        Initializes the Mediator class
 
-        :param config_location:
+        :param config_location: path to the Data Store config files
         """
+
+        # Creates a dictionary of the data stores from the config file
         self.data_stores = dict(DataStoreFactory(config_location).create_data_stores())
 
-        # self.dao_config = Config(config_location)
+        # Instantiates the Signature Factory and the Router objects
         self.signature_factory = SignatureFactory()
         self.dao_router = Router(self.data_stores)
 
         self.operation = {}
-        self.datastore = {}
 
-    def register_signature(self, method, parameter):
+    def register_signature(self, method):
         """
+        Registers the signature of the method passed against the name of the method
 
-        :param method:
-        :param parameter:
+        :param method: The Method whose signature is to be rgistered
         :return:
         """
 
         from inspect import signature
 
         self.operation[method.__name__] = signature(method)
-        self.datastore[method.__name__] = parameter
 
         return True
 
@@ -59,17 +65,20 @@ class DAOMediator:
         :return:
         """
 
-        # get the caller function's name
-        caller = _getframe(1).f_code.co_name
+        # Get the caller function's name
+        caller = _getframe(2).f_code.co_name
         signature = self.operation.get(caller)
 
+        # Create a signature based on the arguments
         argument_signature = self.signature_factory.create_argument_signature(
             method_args, signature
         )
-        data_object = method_args.get("data_object")
 
+        # Extract the name of the data store
+        data_object = method_args.get("data_object")
         data_store = data_object.data_store.name
 
+        # Choose the required method from the router
         route = self.dao_router.choose_route(argument_signature, data_store, confs)
 
         return route["method"]
