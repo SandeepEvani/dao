@@ -74,12 +74,7 @@ class DAO(IDAO):
         # Take a snapshot of local args. i.e. the provided args
         provided_args = locals().copy()
 
-        filtered_provided_args, method_args, conf_args = self.__preprocess_args(provided_args)
-
-        # choosing the required method by using the router
-        method = self.__mediator.mediate(method_args, conf_args)
-
-        result = method(**method_args)
+        result = self.__data_access_logic(provided_args)
 
         return result
 
@@ -101,7 +96,28 @@ class DAO(IDAO):
         :return: Any.       the return of the method is the value returned after executing the respective reader
                             method based on the input arguments
         """
-        ...
+
+        # Take a snapshot of local args. i.e. the provided args
+        provided_args = locals().copy()
+
+        result = self.__data_access_logic(provided_args)
+
+        return result
+
+
+    def __data_access_logic(self, provided_args):
+        """
+        The Data access logic used by the read and write methods in the DAO
+
+        :param provided_args: The arg set provided to the DAO
+        :return
+        """
+        filtered_provided_args, method_args, conf_args = self.__preprocess_args(provided_args)
+
+        # choosing the required method by using the router
+        method = self.__mediator.mediate(method_args, conf_args)
+
+        return method(**method_args)
 
     def __preprocess_args(self, provided_args):
         """
@@ -112,7 +128,7 @@ class DAO(IDAO):
         """
 
         # Gets the caller frame i.e, read or write and the respective signature
-        caller = _getframe(1).f_code.co_name
+        caller = _getframe(2).f_code.co_name
         signature = self.__mediator.operation.get(caller)
 
         provided_args = provided_args.copy()
