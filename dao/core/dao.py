@@ -1,7 +1,8 @@
 # File : dao.py
 # Description : Implementation of the DAO
 
-from operator import call
+# from operator import call
+import inspect
 from sys import _getframe
 from typing import Any
 
@@ -17,12 +18,6 @@ class DAO(IDAO):
     of the user arguments during the runtime the appropriate method is chosen and is used to execute the read/write
     operation. All this heavy lifting is abstracted from the user using the package and gives an easy interface while
     writing the main application code.
-
-    >>> from dao import DAO
-    >>> dao = DAO("/path/to/data_stores.json")
-    >>> # writing data to a s3 bucket
-    >>> dao.write(data="Write this data", destination='s3://my-bucket/data.txt')
-
     """
 
     __INTERFACE_IDENTIFIER = "dao_interface_class"
@@ -34,97 +29,120 @@ class DAO(IDAO):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def init(self, config_location: str) -> None:
+    def __init__(self):
+        self.__mediator = None
+
+    def init(self, data_stores: str) -> None:
         """
         Initializes the DAO Class
 
-        :param config_location:
+        :param data_stores:
         :return: None
         """
 
-        if getattr(self, self._get_private_attr_name("__mediator"), False):
+        if getattr(self, self.__get_private_attr_name("__mediator"), False):
             raise Exception("Cannot re-initialize the DAO object")
 
         # Initialize the DAOMediator
-        self.__mediator = DAOMediator(config_location)
+        self.__mediator = DAOMediator(data_stores)
 
-        self.__mediator.register_signature(self.write, "destination")
-        self.__mediator.register_signature(self.read, "source")
+        self.__mediator.register_signature(self.write)
+        self.__mediator.register_signature(self.read)
+
+
 
     def write(self, data, data_object, **kwargs) -> Any:
         """
         Triggers the appropriate writer method across all the
         registered methods based on the input parameters received
 
-        :param data:    The data object that has to be written to a destination
-        :param data_object: The destination is a structured URI to where the data has to written to.
-                            common URI structure :: {prefix}://{upper_level_location}/{lower_level_location}
-                            some examples include :-
-                            - s3://my-sample-bucket/my_sample_file.txt
-                            - rs://sales/customer_sales
-                            - sqs://my-fifo-queue.fifo/
+        :param data:        The data that has to be written to the data object
+        :param data_object: The corresponding data object to which the data has to be written
 
-        :param kwargs:  Any other keyword args that are either used as configurations/settings for deciding the appropriate write method
-                        or a part of the method arguments that are passed on to the writer methods.
+        :param kwargs:      Any other keyword args that are either used as configurations/settings for deciding
+                            the appropriate write method or a part of the method arguments that are passed on to
+                            the writer methods.
 
-                        Any Keyword argument starting with 'dao_' will be considered as a setting for the DAO class
-                        but not as an argument to the writer methods, hence all the arguments with the prefix 'dao_'
-                        are filtered before creating the signature object
+                            Any Keyword argument starting with 'dao_' will be considered as a setting for the DAO class
+                            but not as an argument to the writer methods, hence all the arguments with the prefix 'dao_'
+                            are filtered before creating the signature object
 
-        :return: Any.   the return of the method is the value returned after executing the respective writer
-                        method based on the input arguments
+        :return: Any.       the return of the method is the value returned after executing the respective writer
+                            method based on the input arguments
         """
 
         # Take a snapshot of local args. i.e. the provided args
         provided_args = locals().copy()
 
-        filtered_provided_args, method_args, conf_args = self.__preprocess_args(
-            provided_args
-        )
+        filtered_provided_args, method_args, conf_args = self.__preprocess_args(provided_args)
 
         # choosing the required method by using the router
         method = self.__mediator.mediate(method_args, conf_args)
 
-        result = call(method, **method_args)
+        result = method(**method_args)
 
         return result
 
-    def read(self, source, **kwargs) -> Any: ...
+    def read(self, data_object, **kwargs) -> Any:
+        """
+        Triggers the appropriate reader method across all the
+        registered methods based on the input parameters received
+
+        :param data_object: The corresponding data object from which the data has to be read.
+
+        :param kwargs:      Any other keyword args that are either used as configurations/settings for deciding
+                            the appropriate read method or a part of the method arguments that are passed on to
+                            the reader methods.
+
+                            Any Keyword argument starting with 'dao_' will be considered as a setting for the DAO class
+                            but not as an argument to the reader methods, hence all the arguments with the prefix 'dao_'
+                            are filtered before creating the signature object
+
+        :return: Any.       the return of the method is the value returned after executing the respective reader
+                            method based on the input arguments
+        """
+        ...
 
     def __preprocess_args(self, provided_args):
         """
+        Filters, flattens (only the kwarg) and segregates the args
 
-        :param provided_args:
+        :param provided_args: Args provided through the DAO
         :return:
         """
-        import inspect
 
+        # Gets the caller frame i.e, read or write and the respective signature
         caller = _getframe(1).f_code.co_name
         signature = self.__mediator.operation.get(caller)
 
         provided_args = provided_args.copy()
 
+        # Filters the args from unwanted variables
         self.__filter_args(provided_args, signature)
 
+        # Derives the name of the keyword argument
         kwarg_name: str = [
             key
             for key, value in signature.parameters.items()
             if value.kind == inspect.Parameter.VAR_KEYWORD
         ][0]
 
+        # Updating the flattened KWArg to the provided args
         kwarg_value = provided_args.pop(kwarg_name)
-
         provided_args.update(kwarg_value)
 
+        # Separate the config args from method args
         method_args, conf_args = self.__segregate_args(provided_args)
 
         return provided_args, method_args, conf_args
 
-    def __filter_args(self, args, signature):
+    @staticmethod
+    def __filter_args(args, signature):
         """
+        Filters the local variable set to only the required args
 
-        :param args:
-        :param signature:
+        :param args: The local variables set
+        :param signature: The Signature of the respective method (read/write)
         :return:
         """
         keys = list(args.keys())
@@ -132,7 +150,8 @@ class DAO(IDAO):
             if arg_name not in signature.parameters:
                 args.pop(arg_name)
 
-    def __create_arg_set(self, args):
+    @staticmethod
+    def __create_arg_set(args):
         """
         Returns a new arg dictionary by replacing the value of the arg
         with the type of the arg
@@ -142,6 +161,27 @@ class DAO(IDAO):
         """
 
         return {arg_name: type(arg_value) for arg_name, arg_value in args.items()}
+
+    @staticmethod
+    def __segregate_args(args, segregation_prefix="dao_"):
+        """
+
+        :param args:
+        :param segregation_prefix:
+        :return:
+        """
+
+        confs = {}
+        method_args = {}
+
+        # Segregates the args based on the `segregation_prefix`
+        for arg_key in args:
+            if arg_key.startswith(segregation_prefix):
+                confs.update({arg_key: args[arg_key]})
+            else:
+                method_args.update({arg_key: args[arg_key]})
+
+        return method_args, confs
 
     def __resolve_data_store(self, args):
         """
@@ -158,25 +198,7 @@ class DAO(IDAO):
         else:
             return args.get("data_store").data_store.name
 
-    def __segregate_args(self, args, segregation_prefix="dao_"):
-        """
+    def __get_private_attr_name(self, attr):
+        """ Dynamically generate the mangled name for the private attribute """
 
-        :param args:
-        :param segregation_prefix:
-        :return:
-        """
-
-        confs = {}
-        method_args = {}
-
-        for arg_key in args:
-            if arg_key.startswith(segregation_prefix):
-                confs.update({arg_key: args[arg_key]})
-            else:
-                method_args.update({arg_key: args[arg_key]})
-
-        return method_args, confs
-
-    def _get_private_attr_name(self, attr):
-        # Dynamically generate the mangled name for the private attribute
         return f"_{self.__class__.__name__}{attr}"
