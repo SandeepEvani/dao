@@ -25,31 +25,35 @@ class DAO(IDAO):
 
     def __new__(cls, *args, **kwargs):
         # Creates a singleton class of DAO
-        if not getattr(cls, "_instance"):
+        if getattr(cls, "_instance") is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self):
+        """
+        Initialize the DAO class
+        """
         self.__mediator = None
 
     def init(self, data_stores: str) -> None:
         """
-        Initializes the DAO Class
+        Initialize the DAO Class where ever the user needs
 
-        :param data_stores:
+        :param data_stores: location to the data stores config file
         :return: None
         """
 
+        # Checks for the private attribute, if the init function is run the second time,
+        # The init block errors the process
         if getattr(self, self.__get_private_attr_name("__mediator"), False):
             raise Exception("Cannot re-initialize the DAO object")
 
         # Initialize the DAOMediator
         self.__mediator = DAOMediator(data_stores)
 
+        # register the read and write signatures
         self.__mediator.register_signature(self.write)
         self.__mediator.register_signature(self.read)
-
-
 
     def write(self, data, data_object, **kwargs) -> Any:
         """
@@ -74,6 +78,7 @@ class DAO(IDAO):
         # Take a snapshot of local args. i.e. the provided args
         provided_args = locals().copy()
 
+        # calls the data access logic
         result = self.__data_access_logic(provided_args)
 
         return result
@@ -112,7 +117,7 @@ class DAO(IDAO):
         :param provided_args: The arg set provided to the DAO
         :return
         """
-        filtered_provided_args, method_args, conf_args = self.__preprocess_args(provided_args)
+        method_args, conf_args = self.__preprocess_args(provided_args)
 
         # choosing the required method by using the router
         method = self.__mediator.mediate(method_args, conf_args)
@@ -150,7 +155,7 @@ class DAO(IDAO):
         # Separate the config args from method args
         method_args, conf_args = self.__segregate_args(provided_args)
 
-        return provided_args, method_args, conf_args
+        return method_args, conf_args
 
     @staticmethod
     def __filter_args(args, signature):
@@ -181,10 +186,11 @@ class DAO(IDAO):
     @staticmethod
     def __segregate_args(args, segregation_prefix="dao_"):
         """
+        segregates the conf args and method args
 
-        :param args:
-        :param segregation_prefix:
-        :return:
+        :param args: set of provided args to the DAO
+        :param segregation_prefix: The prefix on which the argument segregation happens
+        :return: Tuple: method args and config args
         """
 
         confs = {}
@@ -209,6 +215,7 @@ class DAO(IDAO):
         :param args:
         :return:
         """
+        # Explicit declaration is preferred over the implicit declaration of the data store
         if self.__INTERFACE_IDENTIFIER in args:
             return args.get(self.__INTERFACE_IDENTIFIER)
         else:
