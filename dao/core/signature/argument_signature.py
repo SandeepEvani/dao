@@ -21,10 +21,11 @@ class ArgumentSignature(Signature):
     def is_compatible(self, other: MethodSignature) -> bool:
         """
         Input is verified against registered
-        :param other:
-        :return:
+        :param other: The target signature against which the signature natch is checked
+        :return: Bool, True if the signature matches
         """
 
+        # Check for type of `Other` object
         if type(other) is not MethodSignature:
             raise NotImplementedError(
                 f"Cannot check compatibility of type {type(self)} with type {type(other)}"
