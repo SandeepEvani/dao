@@ -21,7 +21,7 @@ class DAOMediator:
     def __new__(cls, *args, **kwargs):
 
         # Creates a singleton class of DAOMediator
-        if not hasattr(cls, "_instance") or getattr(cls, "_instance") is None:
+        if getattr(cls, "_instance") is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
