@@ -16,7 +16,7 @@ class IDAO(ABC):
         Writes data to an appropriate location
         :return:
         """
-        ...
+        return True
 
     @abstractmethod
     def read(self, source, *args, **kwargs):
@@ -24,7 +24,7 @@ class IDAO(ABC):
         Reads data from an appropriate location
         :return:
         """
-        ...
+        return True
 
     def __repr__(self):
 
