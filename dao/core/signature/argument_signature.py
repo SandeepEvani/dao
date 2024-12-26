@@ -12,6 +12,12 @@ from .signature import Signature
 
 
 class ArgumentSignature(Signature):
+
+    """
+    Argument signature represents the generated input signature
+    from the method args provided from the DAO
+    """
+
     def is_compatible(self, other: MethodSignature) -> bool:
         """
         Input is verified against registered
@@ -37,22 +43,29 @@ class ArgumentSignature(Signature):
 
     def check_type_compatibility(self, other: MethodSignature) -> bool:
         """
+        Type checking for signatures where the arg names match
 
-        :param other:
-        :return:
+        :param other:The signature to which the arg names match
+        :return: bool: True if types match
         """
+
+        # looping over each parameter in the target signature
         for parameter in other.signature.parameters.values():
+
+            # Skip parameter if the annotation in the method signature is not described
             if parameter.annotation == inspect.Parameter.empty:
                 continue
 
+            # If multiple types are provided, check for the type in the collection
             if isinstance(parameter.annotation, types.UnionType):
                 if self.signature.parameters[
                     parameter.name
                 ].annotation not in typing.get_args(parameter.annotation):
                     return False
             elif (
+                # Check for type compatibility
                 self.signature.parameters[parameter.name].annotation
-                != parameter.annotation
+                is not parameter.annotation
             ):
                 return False
 
