@@ -182,7 +182,7 @@ class Router:
     @staticmethod
     def _get_method_type(function):
         """
-
+        Get the method type for the given method
         """
 
         if hasattr(function, "__dao_register_params__"):
@@ -200,7 +200,7 @@ class Router:
     @staticmethod
     def _get_method_preference(function):
         """
-
+        Get the method preference for the given method
         """
         if hasattr(function, "__dao_register_params__"):
             return getattr(function, "__dao_register_params__")[1]
