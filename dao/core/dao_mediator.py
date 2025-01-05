@@ -19,7 +19,6 @@ class DAOMediator:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-
         # Creates a singleton class of DAOMediator
         if getattr(cls, "_instance") is None:
             cls._instance = super().__new__(cls)
@@ -45,7 +44,7 @@ class DAOMediator:
         """
         Registers the signature of the method passed against the name of the method
 
-        :param method: The Method whose signature is to be rgistered
+        :param method: The Method whose signature is to be registered
         :return:
         """
 

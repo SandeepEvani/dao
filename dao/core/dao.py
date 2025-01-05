@@ -109,7 +109,6 @@ class DAO(IDAO):
 
         return result
 
-
     def __data_access_logic(self, provided_args):
         """
         The Data access logic used by the read and write methods in the DAO

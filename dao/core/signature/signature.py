@@ -15,7 +15,7 @@ class Signature:
     """
     def __init__(self, signature: inspect.Signature):
         """
-        Initialized the signature class, with the signature object created using the inspect.Signature class
+        Initialized the signature class, with the signature object created using the `inspect.Signature` class
         and analyzes the signature to create and store metadata with respect to the signature
 
         :parameter signature: The signature object of type inspect.Signature

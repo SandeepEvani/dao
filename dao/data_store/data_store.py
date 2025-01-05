@@ -60,7 +60,7 @@ class DataStore:
 
     def get_details(self):
         """
-        Returns an generator which returns the name, class and the object
+        Returns a generator which returns the name, class and the object
 
         :return: A generator which gets the name, class and the object
         """
