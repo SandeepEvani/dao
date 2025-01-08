@@ -24,3 +24,10 @@ class S3:
         print(data, data_object, arg1, **kwargs)
 
         print("Finished Writing data")
+
+    def read_something_to_s3_2(self, data, data_object, arg1, **kwargs):
+        print("Data is being written from somthing_2 func ")
+
+        print(data, data_object, arg1, **kwargs)
+
+        print("Finished Writing data")
