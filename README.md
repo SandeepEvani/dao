@@ -1,7 +1,7 @@
 
 # DAO
 
-Data Access Object or DAO is a convenience class to access data from different data stores.
+Data Access Object or DAO is a convenience module to ease the data access from different data stores.
 
 We register our data stores with the DAO, and DAO manages the read and write methods for us without us explicitly using the particular methods from the classes
 ## Design
