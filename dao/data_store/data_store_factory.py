@@ -26,6 +26,7 @@ class DataStoreFactory:
             # TODO : JSON Schema validation
         except Exception as error:
             print("Error reading the config file", error)
+            raise error
 
     def create_data_stores(self):
         """
