@@ -36,7 +36,7 @@ class Router:
 
         self.__signatures[method.__name__] = signature(method)
 
-    def choose_route(self, signature, data_store, confs) -> Series:
+    def choose_route(self, signature, data_store, confs, method_type) -> Series:
         """choose_route method is used to choose the required data access
         method based on the method args provided to the operator function.
 
@@ -49,13 +49,13 @@ class Router:
         """
 
         # Filters the route table for unwanted kwargs
-        search_space: DataFrame = self.filter_routes(data_store, signature.len_all_args, confs)
+        search_space: DataFrame = self.filter_routes(data_store, signature.len_all_args, method_type, confs)
 
         route = self.get_route(search_space, signature, confs)
 
         return route
 
-    def filter_routes(self, datastore, length, confs) -> DataFrame:
+    def filter_routes(self, datastore, length, method_type, confs) -> DataFrame:
         """Filters the routes based on the data store class and the length.
 
         :param datastore: The Data Store identifier
@@ -65,7 +65,8 @@ class Router:
         """
 
         return self.routes.loc[
-            (self.routes["identifier"] == datastore) & (self.routes["length_non_var_args"] <= length)
+            (self.routes["identifier"] == datastore) & (self.routes["method_type"] == method_type)
+            & (self.routes["length_non_var_args"] <= length)
         ]
 
     def _list_methods_with_predicate(self, interface_object):

@@ -72,6 +72,9 @@ class DAOMediator:
         caller = _getframe(2).f_code.co_name
         signature = self.operation.get(caller)
 
+        if caller not in ("read", "write"):
+            raise ValueError("Invalid caller function")
+
         # Create a signature based on the arguments
         argument_signature = self.signature_factory.create_argument_signature(method_args, signature)
 
@@ -94,6 +97,6 @@ class DAOMediator:
             ...
 
         # Choose the required method from the router
-        route = self.dao_router.choose_route(argument_signature, data_store, confs)
+        route = self.dao_router.choose_route(argument_signature, data_store, caller, confs)
 
         return route["method"]
