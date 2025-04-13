@@ -10,11 +10,8 @@ from dao.data_store.data_store_factory import DataStoreFactory
 
 
 class DAOMediator:
-    """
-    Mediator is used to interoperate between the DAO class and the
-    Signature and Router classes providing a common hub for all the
-    involved classes
-    """
+    """Mediator is used to interoperate between the DAO class and the Signature
+    and Router classes providing a common hub for all the involved classes."""
 
     _instance = None
 
@@ -24,25 +21,31 @@ class DAOMediator:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, config_location: str):
-        """
-        Initializes the Mediator class
+    def __init__(self, config_location: str, lazy: bool):
+        """Initializes the Mediator class.
 
         :param config_location: path to the Data Store config files
+        :param lazy: boolean flag to perform lazy initialization
         """
 
-        # Creates a dictionary of the data stores from the config file
-        self.data_stores = dict(DataStoreFactory(config_location).create_data_stores())
+        self._is_lazy = lazy
 
         # Instantiates the Signature Factory and the Router objects
         self.signature_factory = SignatureFactory()
-        self.dao_router = Router(self.data_stores)
+        self.dao_router = Router()
+        self.data_store_factory = DataStoreFactory(config_location)
 
-        self.operation = {}
+        if lazy:
+            self.data_store_factory.validate()
+
+        else:
+            # Creates a dictionary of the data stores from the config file
+            self.data_stores = dict(self.data_store_factory.create_data_stores())
+            self.operation = {}
 
     def register_signature(self, method):
-        """
-        Registers the signature of the method passed against the name of the method
+        """Registers the signature of the method passed against the name of the
+        method.
 
         :param method: The Method whose signature is to be registered
         :return:
@@ -55,9 +58,8 @@ class DAOMediator:
         return True
 
     def mediate(self, method_args, confs) -> Callable:
-        """
-        choose_route method is used to choose the required data access method
-        based on the method args provided to the operator function
+        """choose_route method is used to choose the required data access
+        method based on the method args provided to the operator function.
 
         :param confs:
         :param method_args:
@@ -76,6 +78,18 @@ class DAOMediator:
         # Extract the name of the data store
         data_object = method_args.get("data_object")
         data_store = data_object.data_store.name
+
+        if self._is_lazy:
+            # Check if the data store is previously initialized
+
+            # If Initialised move ahead to route_selection
+
+            # If not, create routes for the specific data store
+
+            # Move to route_selection
+
+            ...
+
 
         # Choose the required method from the router
         route = self.dao_router.choose_route(argument_signature, data_store, confs)

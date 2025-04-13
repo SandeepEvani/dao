@@ -1,4 +1,5 @@
 from catalog import catalog
+
 from dao import dao
 
 if __name__ == "__main__":

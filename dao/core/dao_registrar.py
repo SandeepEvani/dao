@@ -5,11 +5,11 @@
 def register(mode: str, preference: int = 0):
 
     def internal_wrapper(method):
-        """
-        monkey patches the method provided with the external parameters
+        """Monkey patches the method provided with the external parameters
         marking it for the DAO class to recognize the method as well as
-        collecting the mode, preference parameters for the method
-        :param method:
+        collecting the mode, preference parameters for the method :param
+        method:
+
         :return: None
         """
 
