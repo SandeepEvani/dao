@@ -3,9 +3,21 @@
     "raw": {
       "interface_class": "S3",
       "interface_class_location": "s3",
-      "default_configs": {
-        "bucket": "raw_zone"
-      }
+      "default_configs": {"bucket": "raw_zone"},
+      "secondary_interfaces": [
+        {
+          "interface_class": "Delta",
+          "interface_class_location": "delta",
+          "default_configs": {}
+        },
+        {
+          "interface_class": "Hudi",
+          "interface_class_location": "hudi",
+          "default_configs": {
+            "bucket": "raw-zone"
+          }
+        }
+      ]
     },
     "processed": {
       "interface_class": "Redshift",

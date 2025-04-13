@@ -11,13 +11,17 @@ from dao.core.dao_mediator import DAOMediator
 
 
 class DAO(IDAO):
-    """
-    This is the Data Access Object class, this is used to create data access object to read/write data from different
-    sources and is extendable to multiple classes. The DAO object pre-registers all the methods required for reading
-    and writing data, creates a route table out of different method's acceptable signatures and based upon the input
-    of the user arguments during the runtime the appropriate method is chosen and is used to execute the read/write
-    operation. All this heavy lifting is abstracted from the user using the package and gives an easy interface while
-    writing the main application code.
+    """This is the Data Access Object class, this is used to create data access
+    object to read/write data from different sources and is extendable to
+    multiple classes.
+
+    The DAO object pre-registers all the methods required for reading
+    and writing data, creates a route table out of different method's
+    acceptable signatures and based upon the input of the user arguments
+    during the runtime the appropriate method is chosen and is used to
+    execute the read/write operation. All this heavy lifting is
+    abstracted from the user using the package and gives an easy
+    interface while writing the main application code.
     """
 
     __INTERFACE_IDENTIFIER = "dao_interface_class"
@@ -30,16 +34,15 @@ class DAO(IDAO):
         return cls._instance
 
     def __init__(self):
-        """
-        Initialize the DAO class
-        """
+        """Initialize the DAO class."""
         self.__mediator = None
+        self.__lazy = None
 
-    def init(self, data_stores: str) -> None:
-        """
-        Initialize the DAO Class where ever the user needs
+    def init(self, data_stores: str, lazy=False) -> None:
+        """Initialize the DAO Class where ever the user needs.
 
         :param data_stores: location to the data stores config file
+        :param lazy: Flag to perform lazy initiation of data classes
         :return: None
         """
 
@@ -49,30 +52,30 @@ class DAO(IDAO):
             raise Exception("Cannot re-initialize the DAO object")
 
         # Initialize the DAOMediator
-        self.__mediator = DAOMediator(data_stores)
+        self.__mediator = DAOMediator(data_stores, lazy=lazy)
 
         # register the read and write signatures
         self.__mediator.register_signature(self.write)
         self.__mediator.register_signature(self.read)
 
     def write(self, data, data_object, **kwargs) -> Any:
-        """
-        Triggers the appropriate writer method across all the
-        registered methods based on the input parameters received
+        """Triggers the appropriate writer method across all the registered
+        methods based on the input parameters received.
 
-        :param data:        The data that has to be written to the data object
-        :param data_object: The corresponding data object to which the data has to be written
-
-        :param kwargs:      Any other keyword args that are either used as configurations/settings for deciding
-                            the appropriate write method or a part of the method arguments that are passed on to
-                            the writer methods.
-
-                            Any Keyword argument starting with 'dao_' will be considered as a setting for the DAO class
-                            but not as an argument to the writer methods, hence all the arguments with the prefix 'dao_'
-                            are filtered before creating the signature object
-
-        :return: Any.       the return of the method is the value returned after executing the respective writer
-                            method based on the input arguments
+        :param data: The data that has to be written to the data object
+        :param data_object: The corresponding data object to which the
+            data has to be written
+        :param kwargs: Any other keyword args that are either used as
+            configurations/settings for deciding the appropriate write
+            method or a part of the method arguments that are passed on
+            to the writer methods. Any Keyword argument starting with
+            'dao_' will be considered as a setting for the DAO class but
+            not as an argument to the writer methods, hence all the
+            arguments with the prefix 'dao_' are filtered before
+            creating the signature object
+        :return: Any. the return of the method is the value
+            returned after executing the respective writer method based
+            on the input arguments
         """
 
         # Take a snapshot of local args. i.e. the provided args
@@ -84,22 +87,22 @@ class DAO(IDAO):
         return result
 
     def read(self, data_object, **kwargs) -> Any:
-        """
-        Triggers the appropriate reader method across all the
-        registered methods based on the input parameters received
+        """Triggers the appropriate reader method across all the registered
+        methods based on the input parameters received.
 
-        :param data_object: The corresponding data object from which the data has to be read.
-
-        :param kwargs:      Any other keyword args that are either used as configurations/settings for deciding
-                            the appropriate read method or a part of the method arguments that are passed on to
-                            the reader methods.
-
-                            Any Keyword argument starting with 'dao_' will be considered as a setting for the DAO class
-                            but not as an argument to the reader methods, hence all the arguments with the prefix 'dao_'
-                            are filtered before creating the signature object
-
-        :return: Any.       the return of the method is the value returned after executing the respective reader
-                            method based on the input arguments
+        :param data_object: The corresponding data object from which the
+            data has to be read.
+        :param kwargs: Any other keyword args that are either used as
+            configurations/settings for deciding the appropriate read
+            method or a part of the method arguments that are passed on
+            to the reader methods. Any Keyword argument starting with
+            'dao_' will be considered as a setting for the DAO class but
+            not as an argument to the reader methods, hence all the
+            arguments with the prefix 'dao_' are filtered before
+            creating the signature object
+        :return: Any. the return of the method is the value
+            returned after executing the respective reader method based
+            on the input arguments
         """
 
         # Take a snapshot of local args. i.e. the provided args
@@ -110,11 +113,9 @@ class DAO(IDAO):
         return result
 
     def __data_access_logic(self, provided_args):
-        """
-        The Data access logic used by the read and write methods in the DAO
+        """The Data access logic used by the read and write methods in the DAO.
 
-        :param provided_args: The arg set provided to the DAO
-        :return
+        :param provided_args: The arg set provided to the DAO :return
         """
         method_args, conf_args = self.__preprocess_args(provided_args)
 
@@ -124,8 +125,7 @@ class DAO(IDAO):
         return method(**method_args)
 
     def __preprocess_args(self, provided_args):
-        """
-        Filters, flattens (only the kwarg) and segregates the args
+        """Filters, flattens (only the kwarg) and segregates the args.
 
         :param provided_args: Args provided through the DAO
         :return:
@@ -142,9 +142,7 @@ class DAO(IDAO):
 
         # Derives the name of the keyword argument
         kwarg_name: str = [
-            key
-            for key, value in signature.parameters.items()
-            if value.kind == inspect.Parameter.VAR_KEYWORD
+            key for key, value in signature.parameters.items() if value.kind == inspect.Parameter.VAR_KEYWORD
         ][0]
 
         # Updating the flattened KWArg to the provided args
@@ -158,11 +156,11 @@ class DAO(IDAO):
 
     @staticmethod
     def __filter_args(args, signature):
-        """
-        Filters the local variable set to only the required args
+        """Filters the local variable set to only the required args.
 
         :param args: The local variables set
-        :param signature: The Signature of the respective method (read/write)
+        :param signature: The Signature of the respective method
+            (read/write)
         :return:
         """
         keys = list(args.keys())
@@ -172,9 +170,8 @@ class DAO(IDAO):
 
     @staticmethod
     def __create_arg_set(args):
-        """
-        Returns a new arg dictionary by replacing the value of the arg
-        with the type of the arg
+        """Returns a new arg dictionary by replacing the value of the arg with
+        the type of the arg.
 
         :param args:
         :return:
@@ -184,11 +181,11 @@ class DAO(IDAO):
 
     @staticmethod
     def __segregate_args(args, segregation_prefix="dao_"):
-        """
-        segregates the conf args and method args
+        """Segregates the conf args and method args.
 
         :param args: set of provided args to the DAO
-        :param segregation_prefix: The prefix on which the argument segregation happens
+        :param segregation_prefix: The prefix on which the argument
+            segregation happens
         :return: Tuple: method args and config args
         """
 
@@ -205,11 +202,11 @@ class DAO(IDAO):
         return method_args, confs
 
     def __resolve_data_store(self, args):
-        """
-        Get the data store mentioned in the 'datastore_uri'
-        resolve_data_store first looks for the explicit declaration of the identifier through the
-        'dao_interface_identifier' parameter and then looks at the data_store_uri
-        if the interface identifier is not provided
+        """Get the data store mentioned in the 'datastore_uri'
+        resolve_data_store first looks for the explicit declaration of the
+        identifier through the 'dao_interface_identifier' parameter and then
+        looks at the data_store_uri if the interface identifier is not
+        provided.
 
         :param args:
         :return:
@@ -221,6 +218,6 @@ class DAO(IDAO):
             return args.get("data_store").data_store.name
 
     def __get_private_attr_name(self, attr):
-        """ Dynamically generate the mangled name for the private attribute """
+        """Dynamically generate the mangled name for the private attribute."""
 
         return f"_{self.__class__.__name__}{attr}"

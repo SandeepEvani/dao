@@ -9,11 +9,8 @@ from .method_signatures import MethodSignature
 
 
 class SignatureFactory:
-
-    """
-    Signature factory is used to create both the method signature
-    and argument signature at the runtime
-    """
+    """Signature factory is used to create both the method signature and
+    argument signature at the runtime."""
 
     _instance = None
 
@@ -23,11 +20,12 @@ class SignatureFactory:
         return cls._instance
 
     def create_method_signature(self, method):
-        """
-        Creates the method signature for the given method with all possible combinatorics
+        """Creates the method signature for the given method with all possible
+        combinatorics.
 
         :param method: Callable from the DAO interface class
-        :return List: All acceptable parameter-signature combination for the given callable
+        :return List: All acceptable parameter-signature combination for
+            the given callable
         """
 
         # Create the signature using the inspect module
@@ -37,13 +35,11 @@ class SignatureFactory:
         possible_method_signatures = self._get_all_combinations(method_signature)
 
         return [
-            MethodSignature(generated_method_signature)
-            for generated_method_signature in possible_method_signatures
+            MethodSignature(generated_method_signature) for generated_method_signature in possible_method_signatures
         ]
 
     def create_argument_signature(self, args, signature):
-        """
-        Creates the argument signature for the given set of args
+        """Creates the argument signature for the given set of args.
 
         :param args: The given args for the DAO
         :param signature: Signature of the access method (Read or Write)
@@ -80,9 +76,8 @@ class SignatureFactory:
 
     @staticmethod
     def _get_all_combinations(signature):
-        """
-        Returns all combinations of signatures for a
-        specific method based on the defaults assigned
+        """Returns all combinations of signatures for a specific method based
+        on the defaults assigned.
 
         :param signature:
         :return:
@@ -103,8 +98,7 @@ class SignatureFactory:
 
         # Creating a chain object over the different combinations of the defaulted parameters
         chain_object = chain.from_iterable(
-            combinations(defaulted_params, length)
-            for length in range(len(defaulted_params) + 1)
+            combinations(defaulted_params, length) for length in range(len(defaulted_params) + 1)
         )
 
         # Returns the list of signatures with the non-default parameters
@@ -112,12 +106,14 @@ class SignatureFactory:
 
     @staticmethod
     def _parameter(name, kind, type_):
-        """
-        Creates the parameter object which is used to create the signature object
+        """Creates the parameter object which is used to create the signature
+        object.
 
         :param name: The Name of the parameter
-        :param kind: The Type of the parameter (Positional, keyword, variable positional or variable keyword)
-        :param type_: The Type of the parameter value that is needed (int, str. float)
+        :param kind: The Type of the parameter (Positional, keyword,
+            variable positional or variable keyword)
+        :param type_: The Type of the parameter value that is needed
+            (int, str. float)
         :return: The parameter object with the given parameters
         """
 

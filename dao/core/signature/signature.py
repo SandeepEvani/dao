@@ -7,18 +7,17 @@ import inspect
 
 
 class Signature:
-    """
-    Base signature class for creating and maintaining different
-    method and argument signatures, uses the signature class from
-    inspect module and some other metadata useful for comparison
+    """Base signature class for creating and maintaining different method and
+    argument signatures, uses the signature class from inspect module and some
+    other metadata useful for comparison."""
 
-    """
     def __init__(self, signature: inspect.Signature):
-        """
-        Initialized the signature class, with the signature object created using the `inspect.Signature` class
-        and analyzes the signature to create and store metadata with respect to the signature
+        """Initialized the signature class, with the signature object created
+        using the `inspect.Signature` class and analyzes the signature to
+        create and store metadata with respect to the signature.
 
-        :parameter signature: The signature object of type inspect.Signature
+        :parameter signature: The signature object of type
+            inspect.Signature
         """
 
         self.has_var_args = False
@@ -35,10 +34,8 @@ class Signature:
         self.len_non_var_args = len(self.non_var_args)
 
     def _analyse_args(self, signature):
-        """
-        Loops over the signature parameters and their types
-        and creates a metadata dictionary based on the parameters
-        """
+        """Loops over the signature parameters and their types and creates a
+        metadata dictionary based on the parameters."""
 
         self.all_args = list(signature.parameters.keys())
 
