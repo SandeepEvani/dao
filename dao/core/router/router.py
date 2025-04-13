@@ -4,6 +4,7 @@
 from inspect import getmembers, ismethod, signature
 from itertools import chain
 
+import pandas as pd
 from pandas import DataFrame, Series
 
 from dao.core.signature.signature_factory import SignatureFactory
@@ -48,9 +49,7 @@ class Router:
         """
 
         # Filters the route table for unwanted kwargs
-        search_space: DataFrame = self.filter_routes(
-            data_store, signature.len_all_args, confs
-        )
+        search_space: DataFrame = self.filter_routes(data_store, signature.len_all_args, confs)
 
         route = self.get_route(search_space, signature, confs)
 
@@ -66,8 +65,7 @@ class Router:
         """
 
         return self.routes.loc[
-            (self.routes["identifier"] == datastore)
-            & (self.routes["length_non_var_args"] <= length)
+            (self.routes["identifier"] == datastore) & (self.routes["length_non_var_args"] <= length)
         ]
 
     def _list_methods_with_predicate(self, interface_object):
@@ -125,7 +123,7 @@ class Router:
         else:
             raise Exception("No Compatible Method Found")
 
-    def create_routes(self, data_stores):
+    def create_routes_from_data_stores(self, data_stores):
         """Creates the route table from the data stores.
 
         :param data_stores: collection of data stores
@@ -133,42 +131,72 @@ class Router:
         """
 
         # Gets the details from each data store
-        dao_objects = chain.from_iterable(
-            (data_store.get_details() for data_store in data_stores.values())
-        )
+        dao_objects = chain.from_iterable((data_store.get_details() for data_store in data_stores.values()))
 
         # Creates the route table from the respective details
-        route_table = DataFrame(
-            dao_objects, columns=["identifier", "interface_class", "interface_object"]
-               )
+        route_table = DataFrame(dao_objects, columns=["identifier", "interface_class", "interface_object"])
 
-        route_table["method"] = route_table["interface_object"].apply(
-            self._list_methods_with_predicate
-        )
+        route_table["method"] = route_table["interface_object"].apply(self._list_methods_with_predicate)
         route_table = route_table.explode("method")
 
-        route_table["signature"] = route_table["method"].apply(
-            SignatureFactory().create_method_signature
-        )
+        route_table["signature"] = route_table["method"].apply(SignatureFactory().create_method_signature)
 
         route_table["method_type"] = route_table["method"].apply(self._get_method_type)
-        route_table["preference"] = route_table["method"].apply(
-            self._get_method_preference
-        )
+        route_table["preference"] = route_table["method"].apply(self._get_method_preference)
 
         route_table = route_table.explode("signature")
 
-        route_table["length_non_var_args"] = route_table["signature"].apply(
-            lambda x: x.len_non_var_args
-        )
-        route_table["length_all_args"] = route_table["signature"].apply(
-            lambda x: x.len_all_args
-        )
+        route_table["length_non_var_args"] = route_table["signature"].apply(lambda x: x.len_non_var_args)
+        route_table["length_all_args"] = route_table["signature"].apply(lambda x: x.len_all_args)
 
-        return route_table.sort_values(
+        route_table = route_table.sort_values(
             ["identifier", "length_non_var_args", "preference", "length_all_args"],
             ascending=[True, False, True, True],
         ).reset_index(drop=True)
+
+        self.routes = pd.concat((self.routes, route_table))
+
+        return
+
+    def create_routes_from_data_object(self, data_store: str, interface_object):
+        """Creates the route table from the data stores.
+
+        :param data_store: collection of data stores
+        :param interface_object: collection of data stores
+        :return: None
+        """
+
+        # # Gets the details from each data store
+        # dao_objects = chain.from_iterable(
+        #     (data_store.get_details() for data_store in data_stores.values())
+        # )
+
+        # Creates the route table from the respective details
+        route_table = DataFrame([(data_store, interface_object)], columns=["identifier", "interface_object"])
+
+        route_table["interface_class"] = route_table["interface_object"].apply(lambda x: x.__class__.__name__)
+
+        route_table["method"] = route_table["interface_object"].apply(self._list_methods_with_predicate)
+        route_table = route_table.explode("method")
+
+        route_table["signature"] = route_table["method"].apply(SignatureFactory().create_method_signature)
+
+        route_table["method_type"] = route_table["method"].apply(self._get_method_type)
+        route_table["preference"] = route_table["method"].apply(self._get_method_preference)
+
+        route_table = route_table.explode("signature")
+
+        route_table["length_non_var_args"] = route_table["signature"].apply(lambda x: x.len_non_var_args)
+        route_table["length_all_args"] = route_table["signature"].apply(lambda x: x.len_all_args)
+
+        route_table = route_table.sort_values(
+            ["identifier", "length_non_var_args", "preference", "length_all_args"],
+            ascending=[True, False, True, True],
+        ).reset_index(drop=True)
+
+        self.routes = pd.concat((self.routes, route_table))
+
+        return
 
     @staticmethod
     def _get_method_type(function):
