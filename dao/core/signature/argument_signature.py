@@ -22,9 +22,7 @@ class ArgumentSignature(Signature):
 
         # Check for type of `Other` object
         if type(other) is not MethodSignature:
-            raise NotImplementedError(
-                f"Cannot check compatibility of type {type(self)} with type {type(other)}"
-            )
+            raise NotImplementedError(f"Cannot check compatibility of type {type(self)} with type {type(other)}")
 
         # check for the non variable args
         if not other.has_var_args and other.len_non_var_args != self.len_all_args:
@@ -53,9 +51,7 @@ class ArgumentSignature(Signature):
 
             # If multiple types are provided, check for the type in the collection
             if isinstance(parameter.annotation, types.UnionType):
-                if self.signature.parameters[
-                    parameter.name
-                ].annotation not in typing.get_args(parameter.annotation):
+                if self.signature.parameters[parameter.name].annotation not in typing.get_args(parameter.annotation):
                     return False
             elif (
                 # Check for type compatibility

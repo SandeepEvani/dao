@@ -35,9 +35,7 @@ class Catalog:
             raise Exception("Provided table might not be registered")
 
         properties = tables.get(table)
-        return TableObject(
-            name=table, data_store=data_store_object, **properties
-        )
+        return TableObject(name=table, data_store=data_store_object, **properties)
 
 
 catalog = Catalog("examples/catalog.json")

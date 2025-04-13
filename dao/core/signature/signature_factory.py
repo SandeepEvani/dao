@@ -35,8 +35,7 @@ class SignatureFactory:
         possible_method_signatures = self._get_all_combinations(method_signature)
 
         return [
-            MethodSignature(generated_method_signature)
-            for generated_method_signature in possible_method_signatures
+            MethodSignature(generated_method_signature) for generated_method_signature in possible_method_signatures
         ]
 
     def create_argument_signature(self, args, signature):
@@ -99,8 +98,7 @@ class SignatureFactory:
 
         # Creating a chain object over the different combinations of the defaulted parameters
         chain_object = chain.from_iterable(
-            combinations(defaulted_params, length)
-            for length in range(len(defaulted_params) + 1)
+            combinations(defaulted_params, length) for length in range(len(defaulted_params) + 1)
         )
 
         # Returns the list of signatures with the non-default parameters

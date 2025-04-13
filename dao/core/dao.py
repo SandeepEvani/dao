@@ -142,9 +142,7 @@ class DAO(IDAO):
 
         # Derives the name of the keyword argument
         kwarg_name: str = [
-            key
-            for key, value in signature.parameters.items()
-            if value.kind == inspect.Parameter.VAR_KEYWORD
+            key for key, value in signature.parameters.items() if value.kind == inspect.Parameter.VAR_KEYWORD
         ][0]
 
         # Updating the flattened KWArg to the provided args
