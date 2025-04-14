@@ -1,7 +1,6 @@
-# File : dao.py
-# Description : Implementation of the DAO
+# dao.py
+# Implementation of the DAO
 
-# from operator import call
 import inspect
 from sys import _getframe
 from typing import Any
@@ -39,17 +38,19 @@ class DAO(IDAO):
         self.__lazy = None
 
     def init(self, data_stores: str, lazy=False) -> None:
-        """Initialize the DAO Class where ever the user needs.
+        """Initialize the DAO Class where ever/ when ever the user needs.
 
         :param data_stores: location to the data stores config file
         :param lazy: Flag to perform lazy initiation of data classes
         :return: None
         """
 
+        self.__lazy = lazy
+
         # Checks for the private attribute, if the init function is run the second time,
         # The init block errors the process
         if getattr(self, self.__get_private_attr_name("__mediator"), False):
-            raise Exception("Cannot re-initialize the DAO object")
+            raise RuntimeError("Cannot re-initialize the DAO object")
 
         # Initialize the DAOMediator
         self.__mediator = DAOMediator(data_stores, lazy=lazy)
@@ -169,17 +170,6 @@ class DAO(IDAO):
                 args.pop(arg_name)
 
     @staticmethod
-    def __create_arg_set(args):
-        """Returns a new arg dictionary by replacing the value of the arg with
-        the type of the arg.
-
-        :param args:
-        :return:
-        """
-
-        return {arg_name: type(arg_value) for arg_name, arg_value in args.items()}
-
-    @staticmethod
     def __segregate_args(args, segregation_prefix="dao_"):
         """Segregates the conf args and method args.
 
@@ -200,22 +190,6 @@ class DAO(IDAO):
                 method_args.update({arg_key: args[arg_key]})
 
         return method_args, confs
-
-    def __resolve_data_store(self, args):
-        """Get the data store mentioned in the 'datastore_uri'
-        resolve_data_store first looks for the explicit declaration of the
-        identifier through the 'dao_interface_identifier' parameter and then
-        looks at the data_store_uri if the interface identifier is not
-        provided.
-
-        :param args:
-        :return:
-        """
-        # Explicit declaration is preferred over the implicit declaration of the data store
-        if self.__INTERFACE_IDENTIFIER in args:
-            return args.get(self.__INTERFACE_IDENTIFIER)
-        else:
-            return args.get("data_store").data_store.name
 
     def __get_private_attr_name(self, attr):
         """Dynamically generate the mangled name for the private attribute."""
