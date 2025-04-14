@@ -36,7 +36,7 @@ class Router:
 
         self.__signatures[method.__name__] = signature(method)
 
-    def choose_route(self, signature, data_store, confs, method_type) -> Series:
+    def choose_route(self, signature, data_store, method_type, confs) -> Series:
         """choose_route method is used to choose the required data access
         method based on the method args provided to the operator function.
 
@@ -65,7 +65,8 @@ class Router:
         """
 
         return self.routes.loc[
-            (self.routes["identifier"] == datastore) & (self.routes["method_type"] == method_type)
+            (self.routes["identifier"] == datastore)
+            & (self.routes["method_type"] == method_type)
             & (self.routes["length_non_var_args"] <= length)
         ]
 
@@ -132,10 +133,15 @@ class Router:
         """
 
         # Gets the details from each data store
-        dao_objects = chain.from_iterable((data_store.get_details() for data_store in data_stores.values()))
+        dao_objects = chain.from_iterable(
+            (
+                [(data_object, data_store.name) for data_object in data_store.get_interface_objects()]
+                for data_store in data_stores
+            )
+        )
 
         # Creates the route table from the respective details
-        route_table = DataFrame(dao_objects, columns=["identifier", "interface_class", "interface_object"])
+        route_table = DataFrame(dao_objects, columns=["interface_object", "identifier"])
 
         route_table["method"] = route_table["interface_object"].apply(self._list_methods_with_predicate)
         route_table = route_table.explode("method")
@@ -166,11 +172,6 @@ class Router:
         :param interface_object: collection of data stores
         :return: None
         """
-
-        # # Gets the details from each data store
-        # dao_objects = chain.from_iterable(
-        #     (data_store.get_details() for data_store in data_stores.values())
-        # )
 
         # Creates the route table from the respective details
         route_table = DataFrame([(data_store, interface_object)], columns=["identifier", "interface_object"])
