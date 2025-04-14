@@ -30,19 +30,19 @@ class DAOMediator:
 
         self._is_lazy = lazy
         self._initialized = set()
+        self.operation = {}
 
         # Instantiates the Signature Factory and the Router objects
         self.signature_factory = SignatureFactory()
         self.dao_router = Router()
         self.data_store_factory = DataStoreFactory(config_location)
-        self.operation = {}
 
         if lazy:
             self.data_store_factory.validate()
 
         else:
             # Creates a dictionary of the data stores from the config file
-            self.data_stores = dict(self.data_store_factory.initialize_all_data_classes())
+            self.data_stores = self.data_store_factory.initialize_all_data_classes()
             self.dao_router.create_routes_from_data_stores(self.data_stores)
 
     def register_signature(self, method):
@@ -56,8 +56,6 @@ class DAOMediator:
         from inspect import signature
 
         self.operation[method.__name__] = signature(method)
-
-        return True
 
     def mediate(self, method_args, confs) -> Callable:
         """choose_route method is used to choose the required data access
@@ -73,7 +71,7 @@ class DAOMediator:
         signature = self.operation.get(caller)
 
         if caller not in ("read", "write"):
-            raise ValueError("Invalid caller function")
+            raise ValueError(f"Invalid caller function '{caller}'. Expected either 'read' or 'write'.")
 
         # Create a signature based on the arguments
         argument_signature = self.signature_factory.create_argument_signature(method_args, signature)
@@ -86,17 +84,19 @@ class DAOMediator:
         data_class = confs.get("dao_interface_class")
 
         if self._is_lazy:
+            # Check if the data_store-data_class pair is not initiated,
+            # if Initiated, we can proceed to choose routes
+            # If not, we need to initiate it
             if not (data_store, data_class) in self._initialized:
+
                 self.data_store_factory.initialize_data_class(data_store, data_class)
-
-                self.dao_router.create_routes_from_data_object(data_store, data_store_object.get_interface_object(data_class))
-
+                self.dao_router.create_routes_from_data_object(
+                    data_store, data_store_object.get_interface_object(data_class)
+                )
                 self._initialized.add((data_store, data_class))
-            # If not, create routes for the specific data store
 
-            ...
-
-        # Choose the required method from the router
+        # If the dao is not lazy, we can safely assume all the data stores
+        # are initiated, and we can proceed to choose routes
         route = self.dao_router.choose_route(argument_signature, data_store, caller, confs)
 
         return route["method"]
