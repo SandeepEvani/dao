@@ -26,7 +26,7 @@ class DataStoreFactory:
         self._initialize_data_stores()
 
     def _initialize_data_stores(self):
-        """Initializes the data store object"""
+        """Initializes the data store object."""
 
         data_stores = self.confs["data_stores"]
         for identifier, properties in data_stores.items():

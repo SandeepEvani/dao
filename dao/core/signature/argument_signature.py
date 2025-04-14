@@ -12,13 +12,13 @@ from .signature import Signature
 
 
 class ArgumentSignature(Signature):
-    """Argument signature represents the generated input signature from the
-    method args provided from the DAO."""
+    """Argument signature represents the generated input signature from the method args
+    provided from the DAO."""
 
     def is_compatible(self, other: MethodSignature) -> bool:
-        """Input is verified against registered :param other: The target
-        signature against which the signature natch is checked :return: Bool,
-        True if the signature matches."""
+        """Input is verified against registered :param other: The target signature
+        against which the signature natch is checked :return: Bool, True if the
+        signature matches."""
 
         # Check for type of `Other` object
         if type(other) is not MethodSignature:

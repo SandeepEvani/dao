@@ -10,8 +10,8 @@ from dao.data_store.data_store_factory import DataStoreFactory
 
 
 class DAOMediator:
-    """Mediator is used to interoperate between the DAO class and the Signature
-    and Router classes providing a common hub for all the involved classes."""
+    """Mediator is used to interoperate between the DAO class and the Signature and
+    Router classes providing a common hub for all the involved classes."""
 
     _instance = None
 
@@ -46,8 +46,7 @@ class DAOMediator:
             self.dao_router.create_routes_from_data_stores(self.data_stores)
 
     def register_signature(self, method):
-        """Registers the signature of the method passed against the name of the
-        method.
+        """Registers the signature of the method passed against the name of the method.
 
         :param method: The Method whose signature is to be registered
         :return:
@@ -58,8 +57,8 @@ class DAOMediator:
         self.operation[method.__name__] = signature(method)
 
     def mediate(self, method_args, confs) -> Callable:
-        """choose_route method is used to choose the required data access
-        method based on the method args provided to the operator function.
+        """choose_route method is used to choose the required data access method based
+        on the method args provided to the operator function.
 
         :param confs:
         :param method_args:

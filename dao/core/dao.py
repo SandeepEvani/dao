@@ -10,17 +10,15 @@ from dao.core.dao_mediator import DAOMediator
 
 
 class DAO(IDAO):
-    """This is the Data Access Object class, this is used to create data access
-    object to read/write data from different sources and is extendable to
-    multiple classes.
+    """This is the Data Access Object class, this is used to create data access object
+    to read/write data from different sources and is extendable to multiple classes.
 
-    The DAO object pre-registers all the methods required for reading
-    and writing data, creates a route table out of different method's
-    acceptable signatures and based upon the input of the user arguments
-    during the runtime the appropriate method is chosen and is used to
-    execute the read/write operation. All this heavy lifting is
-    abstracted from the user using the package and gives an easy
-    interface while writing the main application code.
+    The DAO object pre-registers all the methods required for reading and writing data,
+    creates a route table out of different method's acceptable signatures and based upon
+    the input of the user arguments during the runtime the appropriate method is chosen
+    and is used to execute the read/write operation. All this heavy lifting is
+    abstracted from the user using the package and gives an easy interface while writing
+    the main application code.
     """
 
     __INTERFACE_IDENTIFIER = "dao_interface_class"
@@ -60,23 +58,21 @@ class DAO(IDAO):
         self.__mediator.register_signature(self.read)
 
     def write(self, data, data_object, **kwargs) -> Any:
-        """Triggers the appropriate writer method across all the registered
-        methods based on the input parameters received.
+        """Triggers the appropriate writer method across all the registered methods
+        based on the input parameters received.
 
         :param data: The data that has to be written to the data object
-        :param data_object: The corresponding data object to which the
-            data has to be written
+        :param data_object: The corresponding data object to which the data has to be
+            written
         :param kwargs: Any other keyword args that are either used as
-            configurations/settings for deciding the appropriate write
-            method or a part of the method arguments that are passed on
-            to the writer methods. Any Keyword argument starting with
-            'dao_' will be considered as a setting for the DAO class but
-            not as an argument to the writer methods, hence all the
-            arguments with the prefix 'dao_' are filtered before
-            creating the signature object
-        :return: Any. the return of the method is the value
-            returned after executing the respective writer method based
-            on the input arguments
+            configurations/settings for deciding the appropriate write method or a part
+            of the method arguments that are passed on to the writer methods. Any
+            Keyword argument starting with 'dao_' will be considered as a setting for
+            the DAO class but not as an argument to the writer methods, hence all the
+            arguments with the prefix 'dao_' are filtered before creating the signature
+            object
+        :return: Any. the return of the method is the value returned after executing the
+            respective writer method based on the input arguments
         """
 
         # Take a snapshot of local args. i.e. the provided args
@@ -88,22 +84,20 @@ class DAO(IDAO):
         return result
 
     def read(self, data_object, **kwargs) -> Any:
-        """Triggers the appropriate reader method across all the registered
-        methods based on the input parameters received.
+        """Triggers the appropriate reader method across all the registered methods
+        based on the input parameters received.
 
-        :param data_object: The corresponding data object from which the
-            data has to be read.
+        :param data_object: The corresponding data object from which the data has to be
+            read.
         :param kwargs: Any other keyword args that are either used as
-            configurations/settings for deciding the appropriate read
-            method or a part of the method arguments that are passed on
-            to the reader methods. Any Keyword argument starting with
-            'dao_' will be considered as a setting for the DAO class but
-            not as an argument to the reader methods, hence all the
-            arguments with the prefix 'dao_' are filtered before
-            creating the signature object
-        :return: Any. the return of the method is the value
-            returned after executing the respective reader method based
-            on the input arguments
+            configurations/settings for deciding the appropriate read method or a part
+            of the method arguments that are passed on to the reader methods. Any
+            Keyword argument starting with 'dao_' will be considered as a setting for
+            the DAO class but not as an argument to the reader methods, hence all the
+            arguments with the prefix 'dao_' are filtered before creating the signature
+            object
+        :return: Any. the return of the method is the value returned after executing the
+            respective reader method based on the input arguments
         """
 
         # Take a snapshot of local args. i.e. the provided args
@@ -160,8 +154,7 @@ class DAO(IDAO):
         """Filters the local variable set to only the required args.
 
         :param args: The local variables set
-        :param signature: The Signature of the respective method
-            (read/write)
+        :param signature: The Signature of the respective method (read/write)
         :return:
         """
         keys = list(args.keys())
@@ -174,8 +167,7 @@ class DAO(IDAO):
         """Segregates the conf args and method args.
 
         :param args: set of provided args to the DAO
-        :param segregation_prefix: The prefix on which the argument
-            segregation happens
+        :param segregation_prefix: The prefix on which the argument segregation happens
         :return: Tuple: method args and config args
         """
 

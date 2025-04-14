@@ -5,8 +5,8 @@ from dao.data_object import DataObject
 
 
 class TableObject(DataObject):
-    """A Table Object is a representation of the tabular data structures stored
-    in various data stores such as databases, warehouses, and data lakes."""
+    """A Table Object is a representation of the tabular data structures stored in
+    various data stores such as databases, warehouses, and data lakes."""
 
     def __init__(
         self,

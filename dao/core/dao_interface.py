@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 
 
 class IDAO(ABC):
-    """Class IDAO meaning the DAO interface class defines the base structure of
-    the DAO class and the necessary methods in the class."""
+    """Class IDAO meaning the DAO interface class defines the base structure of the DAO
+    class and the necessary methods in the class."""
 
     @abstractmethod
     def write(self, data, destination, *args, **kwargs):

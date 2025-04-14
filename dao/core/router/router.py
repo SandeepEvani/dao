@@ -4,16 +4,14 @@
 from inspect import getmembers, ismethod, signature
 from itertools import chain
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, concat
 
 from dao.core.signature.signature_factory import SignatureFactory
 
 
 class Router:
-    """Router class stores all the appropriate methods from all the interface
-    classes and their respective function signatures and manages the route
-    table."""
+    """Router class stores all the appropriate methods from all the interface classes
+    and their respective function signatures and manages the route table."""
 
     read_methods_predicate: str = "read"
     write_methods_predicate: str = "write"
@@ -36,14 +34,13 @@ class Router:
 
         self.__signatures[method.__name__] = signature(method)
 
-    def choose_route(self, signature, data_store, method_type, confs) -> Series:
-        """choose_route method is used to choose the required data access
-        method based on the method args provided to the operator function.
+    def choose_route(self, signature, data_store: str, method_type: str, confs) -> Series:
+        """choose_route method is used to choose the required data access method based
+        on the method args provided to the operator function.
 
-        :param signature: The argument signature created on the passed
-            arguments
-        :param data_store: The data store to which the data is being
-            accessed
+        :param method_type:
+        :param signature: The argument signature created on the passed arguments
+        :param data_store: The data store to which the data is being accessed
         :param confs: extra configuration options for Router
         :return: A suitable method based on the input signature
         """
@@ -58,6 +55,7 @@ class Router:
     def filter_routes(self, datastore, length, method_type, confs) -> DataFrame:
         """Filters the routes based on the data store class and the length.
 
+        :param method_type:
         :param datastore: The Data Store identifier
         :param length: The number of args that are passed to the DAO
         :param confs: extra configuration options for the Router
@@ -71,14 +69,12 @@ class Router:
         ]
 
     def _list_methods_with_predicate(self, interface_object):
-        """For a DAO class as an input, this function returns an iterable of
-        functions that have a prefix <Router.read_methods_predicate> or
+        """For a DAO class as an input, this function returns an iterable of functions
+        that have a prefix <Router.read_methods_predicate> or
         <Router.write_methods_predicate>
 
-        :param interface_object: The Interface object created from the
-            data store confs
-        :return: A list of all the methods that are filtered by the
-            router
+        :param interface_object: The Interface object created from the data store confs
+        :return: A list of all the methods that are filtered by the router
         """
 
         predicated_methods = filter(
@@ -97,11 +93,10 @@ class Router:
 
     @staticmethod
     def _get_method_signatures(methods):
-        """This method takes different functions and returns possible
-        combinations of signatures.
+        """This method takes different functions and returns possible combinations of
+        signatures.
 
-        :param methods: Iterable consisting required methods to build
-            signatures for.
+        :param methods: Iterable consisting required methods to build signatures for.
         :returns: Mapping object of different signatures
         """
 
@@ -161,7 +156,7 @@ class Router:
             ascending=[True, False, True, True],
         ).reset_index(drop=True)
 
-        self.routes = pd.concat((self.routes, route_table))
+        self.routes = concat((self.routes, route_table))
 
         return
 
@@ -196,7 +191,7 @@ class Router:
             ascending=[True, False, True, True],
         ).reset_index(drop=True)
 
-        self.routes = pd.concat((self.routes, route_table))
+        self.routes = concat((self.routes, route_table))
 
         return
 
