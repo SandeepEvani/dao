@@ -16,9 +16,11 @@ class ArgumentSignature(Signature):
     provided from the DAO."""
 
     def is_compatible(self, other: MethodSignature) -> bool:
-        """Input is verified against registered :param other: The target signature
-        against which the signature natch is checked :return: Bool, True if the
-        signature matches."""
+        """The Argument signature is verified against provided method signature.
+
+        :param other: The target signature against which the signature natch is checked
+            :return Bool, True if the signature matches.
+        """
 
         # Check for type of `Other` object
         if type(other) is not MethodSignature:
