@@ -49,7 +49,7 @@ class DataStoreFactory:
             data_store = DataStore.get_data_store(identifier)
             data_store.set_primary_interface_object(interface_object)
 
-            for secondary_interface in properties["secondary_interfaces"]:
+            for secondary_interface in properties.get("secondary_interfaces", []):
 
                 interface_object = self._initialize_class(secondary_interface)
                 data_store.set_secondary_interface_object(interface_object)
@@ -121,5 +121,6 @@ class DataStoreFactory:
 
     def validate(self):
         """"""
-
+        # TODO: Build a validation  block to check if all the
+        #  modules are present at the specified locations without importing them
         return True
