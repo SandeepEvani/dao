@@ -73,7 +73,7 @@ class DataStore:
         :return: None
         """
 
-        self._secondary_interface_class[obj.__class__.__name__] = obj
+        self._secondary_interface_object[obj.__class__.__name__] = obj
 
     def get_interface_object(self, class_: Optional[str] = None):
         """ """
@@ -92,16 +92,6 @@ class DataStore:
         :return: list: interface objects
         """
         return [self._primary_interface_object] + list(self._secondary_interface_object.values())
-
-    def get_details(self):
-        """Returns a generator which returns the name, class and the object.
-
-        :return: A generator which gets the name, class and the object
-        """
-        for interface_class, interface_object in [
-            (self.interface_class, self.interface_object),
-        ]:
-            yield self.name, interface_class, interface_object
 
     @classmethod
     def get_data_stores(cls):
