@@ -9,8 +9,8 @@ from .method_signatures import MethodSignature
 
 
 class SignatureFactory:
-    """Signature factory is used to create both the method signature and
-    argument signature at the runtime."""
+    """Signature factory is used to create both the method signature and argument
+    signature at the runtime."""
 
     _instance = None
 
@@ -24,8 +24,8 @@ class SignatureFactory:
         combinatorics.
 
         :param method: Callable from the DAO interface class
-        :return List: All acceptable parameter-signature combination for
-            the given callable
+        :return List: All acceptable parameter-signature combination for the given
+            callable
         """
 
         # Create the signature using the inspect module
@@ -76,8 +76,8 @@ class SignatureFactory:
 
     @staticmethod
     def _get_all_combinations(signature):
-        """Returns all combinations of signatures for a specific method based
-        on the defaults assigned.
+        """Returns all combinations of signatures for a specific method based on the
+        defaults assigned.
 
         :param signature:
         :return:
@@ -106,14 +106,12 @@ class SignatureFactory:
 
     @staticmethod
     def _parameter(name, kind, type_):
-        """Creates the parameter object which is used to create the signature
-        object.
+        """Creates the parameter object which is used to create the signature object.
 
         :param name: The Name of the parameter
-        :param kind: The Type of the parameter (Positional, keyword,
-            variable positional or variable keyword)
-        :param type_: The Type of the parameter value that is needed
-            (int, str. float)
+        :param kind: The Type of the parameter (Positional, keyword, variable positional
+            or variable keyword)
+        :param type_: The Type of the parameter value that is needed (int, str. float)
         :return: The parameter object with the given parameters
         """
 
