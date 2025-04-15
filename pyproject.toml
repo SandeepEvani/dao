@@ -1,2 +1,16 @@
-[tool.black]
-line-length = 120
+[project]
+name = "dao"
+version = "0.1.0"
+description = "A Convience Data Access Object"
+authors = [
+    { name = "Sandeep Evani", email = "sandeepevani01@gmail.com" }
+]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+dao = "dao:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

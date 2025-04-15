@@ -6,8 +6,8 @@ import inspect
 from sys import _getframe
 from typing import Any
 
-from dao.core.dao_interface import IDAO
-from dao.core.dao_mediator import DAOMediator
+from src.dao.core.dao_interface import IDAO
+from src.dao.core.dao_mediator import DAOMediator
 
 
 class DAO(IDAO):

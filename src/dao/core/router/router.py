@@ -7,7 +7,7 @@ from itertools import chain
 import pandas as pd
 from pandas import DataFrame, Series
 
-from dao.core.signature.signature_factory import SignatureFactory
+from src.dao.core.signature.signature_factory import SignatureFactory
 
 
 class Router:

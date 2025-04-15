@@ -1,6 +1,6 @@
 from catalog import catalog
 
-from dao import dao
+from src.dao.dao import dao
 
 if __name__ == "__main__":
 
