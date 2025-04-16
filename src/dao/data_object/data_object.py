@@ -1,7 +1,7 @@
 # data_object.py
 # represents a physical data object present in a datastore
 
-from src.dao.data_store import DataStore
+from ..data_store import DataStore
 
 
 class DataObject:

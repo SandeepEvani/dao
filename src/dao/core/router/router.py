@@ -6,7 +6,7 @@ from itertools import chain
 
 from pandas import DataFrame, Series, concat
 
-from src.dao.core.signature.signature_factory import SignatureFactory
+from ..signature.signature_factory import SignatureFactory
 
 
 class Router:

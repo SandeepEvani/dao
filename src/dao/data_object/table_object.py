@@ -1,7 +1,7 @@
 # table_object.py
 # represents the table data object
 
-from src.dao.data_object import DataObject
+from .data_object import DataObject
 
 
 class TableObject(DataObject):

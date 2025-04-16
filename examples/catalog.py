@@ -3,8 +3,8 @@
 
 from json import load
 
-from src.dao.dao import TableObject
-from src.dao.data_store import DataStore
+from dao.data_object import TableObject
+from dao.data_store import DataStore
 
 
 class Catalog:
