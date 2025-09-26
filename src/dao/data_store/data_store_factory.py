@@ -49,14 +49,18 @@ class DataStoreFactory:
             data_store = DataStore.get_data_store(identifier)
             data_store.set_primary_interface_object(interface_object)
 
-            for secondary_interface in properties.get("secondary_interfaces", []):
+            for secondary_interface in properties.get(
+                "secondary_interfaces", []
+            ):
 
                 interface_object = self._initialize_class(secondary_interface)
                 data_store.set_secondary_interface_object(interface_object)
 
             yield data_store
 
-    def initialize_data_class(self, data_store: str, data_class: Optional[str] = None):
+    def initialize_data_class(
+        self, data_store: str, data_class: Optional[str] = None
+    ):
         """Creates the data stores from the given datastore confs.
 
         :return: the identifier and the data store object
@@ -80,10 +84,14 @@ class DataStoreFactory:
             for secondary_interface in properties["secondary_interfaces"]:
                 if data_class == secondary_interface["interface_class"]:
                     class_name = secondary_interface["interface_class"]
-                    class_path = secondary_interface["interface_class_location"]
+                    class_path = secondary_interface[
+                        "interface_class_location"
+                    ]
                     break
             else:
-                raise KeyError(f"No class {data_class} found in data store {data_store}")
+                raise KeyError(
+                    f"No class {data_class} found in data store {data_store}"
+                )
 
         # imports the modules from the given location
         interface_module = import_module(class_path)
@@ -92,7 +100,9 @@ class DataStoreFactory:
         # Instantiate the interface class
         interface_object = interface_class(**properties["default_configs"])
 
-        data_store_object = DataStore.get_data_store(data_store) or DataStore(data_store)
+        data_store_object = DataStore.get_data_store(data_store) or DataStore(
+            data_store
+        )
 
         if is_primary:
             data_store_object.set_primary_interface_class(interface_class)

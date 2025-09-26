@@ -84,14 +84,18 @@ class DataStore:
             return self._secondary_interface_object[class_]
 
         else:
-            raise KeyError(f"No interface object linked to {class_} class found")
+            raise KeyError(
+                f"No interface object linked to {class_} class found"
+            )
 
     def get_interface_objects(self):
         """Returns a list of interface objects which are previously registered.
 
         :return: list: interface objects
         """
-        return [self._primary_interface_object] + list(self._secondary_interface_object.values())
+        return [self._primary_interface_object] + list(
+            self._secondary_interface_object.values()
+        )
 
     @classmethod
     def get_data_stores(cls):

@@ -32,10 +32,13 @@ class SignatureFactory:
         method_signature = inspect.signature(method)
 
         # Get all signature combinations
-        possible_method_signatures = self._get_all_combinations(method_signature)
+        possible_method_signatures = self._get_all_combinations(
+            method_signature
+        )
 
         return [
-            MethodSignature(generated_method_signature) for generated_method_signature in possible_method_signatures
+            MethodSignature(generated_method_signature)
+            for generated_method_signature in possible_method_signatures
         ]
 
     def create_argument_signature(self, args, signature):
@@ -88,9 +91,13 @@ class SignatureFactory:
 
         # Looping over the parameters to classify between required and default arguments
         for param in signature.parameters.values():
-            if param.default == inspect.Parameter.empty and param.kind not in (
-                inspect.Parameter.VAR_KEYWORD,
-                inspect.Parameter.VAR_POSITIONAL,
+            if (
+                param.default == inspect.Parameter.empty
+                and param.kind
+                not in (
+                    inspect.Parameter.VAR_KEYWORD,
+                    inspect.Parameter.VAR_POSITIONAL,
+                )
             ):
                 required_params.append(param)
             else:
@@ -98,11 +105,15 @@ class SignatureFactory:
 
         # Creating a chain object over the different combinations of the defaulted parameters
         chain_object = chain.from_iterable(
-            combinations(defaulted_params, length) for length in range(len(defaulted_params) + 1)
+            combinations(defaulted_params, length)
+            for length in range(len(defaulted_params) + 1)
         )
 
         # Returns the list of signatures with the non-default parameters
-        return [inspect.Signature(required_params + list(obj)) for obj in chain_object]
+        return [
+            inspect.Signature(required_params + list(obj))
+            for obj in chain_object
+        ]
 
     @staticmethod
     def _parameter(name, kind, type_):

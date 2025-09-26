@@ -19,5 +19,5 @@ class IDAO(ABC):
         return True
 
     def __repr__(self):
-
+        """ """
         return "<DAO()>"

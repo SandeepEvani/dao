@@ -24,7 +24,9 @@ class Catalog:
             raise Exception("Provide a fully qualified table name")
         data_store, table = table_name.split(".")
 
-        if not (DataStore.check_data_store(data_store) and data_store in self.confs):
+        if not (
+            DataStore.check_data_store(data_store) and data_store in self.confs
+        ):
             raise Exception("Provided Datastore might not be registered")
 
         data_store_object = DataStore.get_data_store(data_store)
@@ -35,7 +37,9 @@ class Catalog:
             raise Exception("Provided table might not be registered")
 
         properties = tables.get(table)
-        return TableObject(name=table, data_store=data_store_object, **properties)
+        return TableObject(
+            name=table, data_store=data_store_object, **properties
+        )
 
 
 catalog = Catalog("examples/catalog.json")

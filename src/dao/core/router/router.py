@@ -33,7 +33,9 @@ class Router:
 
         self.__signatures[method.__name__] = signature(method)
 
-    def choose_route(self, arg_signature, data_store: str, method_type: str, confs) -> Series:
+    def choose_route(
+        self, arg_signature, data_store: str, method_type: str, confs
+    ) -> Series:
         """choose_route method is used to choose the required data access method based
         on the method args provided to the operator function.
 
@@ -45,13 +47,17 @@ class Router:
         """
 
         # Filters the route table for unwanted routes
-        search_space: DataFrame = self.filter_routes(data_store, arg_signature.len_all_args, method_type, confs)
+        search_space: DataFrame = self.filter_routes(
+            data_store, arg_signature.len_all_args, method_type, confs
+        )
 
         route = self.get_route(search_space, arg_signature, confs)
 
         return route
 
-    def filter_routes(self, datastore, length, method_type, confs) -> DataFrame:
+    def filter_routes(
+        self, datastore, length, method_type, confs
+    ) -> DataFrame:
         """Filters the routes based on the datastore class, length and the method/caller
         type.
 
@@ -133,20 +139,27 @@ class Router:
         # Gets the details from each data store
         dao_objects = chain.from_iterable(
             (
-                [(data_object, data_store.name) for data_object in data_store.get_interface_objects()]
+                [
+                    (data_object, data_store.name)
+                    for data_object in data_store.get_interface_objects()
+                ]
                 for data_store in data_stores
             )
         )
 
         # Creates the route table from the respective details
-        base_table = DataFrame(dao_objects, columns=["interface_object", "identifier"])
+        base_table = DataFrame(
+            dao_objects, columns=["interface_object", "identifier"]
+        )
 
         route_table = self._create_route_table(base_table)
         self.routes = concat((self.routes, route_table))
 
         return
 
-    def create_routes_from_data_object(self, data_store: str, interface_object) -> None:
+    def create_routes_from_data_object(
+        self, data_store: str, interface_object
+    ) -> None:
         """Creates the route table from the data stores.
 
         :param data_store: collection of data stores
@@ -155,7 +168,10 @@ class Router:
         """
 
         # Creates the route table from the respective details
-        base_table = DataFrame([(data_store, interface_object)], columns=["identifier", "interface_object"])
+        base_table = DataFrame(
+            [(data_store, interface_object)],
+            columns=["identifier", "interface_object"],
+        )
 
         route_table = self._create_route_table(base_table)
         self.routes = concat((self.routes, route_table))
@@ -167,23 +183,42 @@ class Router:
         :return: None
         """
 
-        base_table["interface_class"] = base_table["interface_object"].apply(lambda x: x.__class__.__name__)
+        base_table["interface_class"] = base_table["interface_object"].apply(
+            lambda x: x.__class__.__name__
+        )
 
-        base_table["method"] = base_table["interface_object"].apply(self._list_methods_with_predicate)
+        base_table["method"] = base_table["interface_object"].apply(
+            self._list_methods_with_predicate
+        )
         base_table = base_table.explode("method")
 
-        base_table["signature"] = base_table["method"].apply(SignatureFactory().create_method_signature)
+        base_table["signature"] = base_table["method"].apply(
+            SignatureFactory().create_method_signature
+        )
 
-        base_table["method_type"] = base_table["method"].apply(self._get_method_type)
-        base_table["preference"] = base_table["method"].apply(self._get_method_preference)
+        base_table["method_type"] = base_table["method"].apply(
+            self._get_method_type
+        )
+        base_table["preference"] = base_table["method"].apply(
+            self._get_method_preference
+        )
 
         base_table = base_table.explode("signature")
 
-        base_table["length_non_var_args"] = base_table["signature"].apply(lambda x: x.len_non_var_args)
-        base_table["length_all_args"] = base_table["signature"].apply(lambda x: x.len_all_args)
+        base_table["length_non_var_args"] = base_table["signature"].apply(
+            lambda x: x.len_non_var_args
+        )
+        base_table["length_all_args"] = base_table["signature"].apply(
+            lambda x: x.len_all_args
+        )
 
         route_table = base_table.sort_values(
-            ["identifier", "length_non_var_args", "preference", "length_all_args"],
+            [
+                "identifier",
+                "length_non_var_args",
+                "preference",
+                "length_all_args",
+            ],
             ascending=[True, False, True, True],
         ).reset_index(drop=True)
 

@@ -5,7 +5,8 @@ import inspect
 from sys import _getframe
 from typing import Any
 
-from .dao_interface import IDAO
+from src.dao.core.dao_interface import IDAO
+
 from .dao_mediator import DAOMediator
 
 
@@ -137,7 +138,9 @@ class DAO(IDAO):
 
         # Derives the name of the keyword argument
         kwarg_name: str = [
-            key for key, value in signature.parameters.items() if value.kind == inspect.Parameter.VAR_KEYWORD
+            key
+            for key, value in signature.parameters.items()
+            if value.kind == inspect.Parameter.VAR_KEYWORD
         ][0]
 
         # Updating the flattened KWArg to the provided args
