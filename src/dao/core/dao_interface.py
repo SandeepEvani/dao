@@ -19,6 +19,11 @@ class IDAO(ABC):
         """Reads data from an appropriate location :return: Any"""
         return True
 
+    @abstractmethod
+    def run(self, data_object, **kwargs) -> Any:
+        """Execute code/statements in respective data stores :return: Any"""
+        return True
+
     def __repr__(self):
         """ """
         return "<DAO()>"
