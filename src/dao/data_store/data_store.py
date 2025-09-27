@@ -32,6 +32,9 @@ class DataStore:
         self._secondary_interface_class = {}
         self._secondary_interface_object = {}
 
+        for attribute, value in properties.items():
+            setattr(self, attribute, value)
+
     def set_primary_interface_class(self, class_) -> None:
         """Registers the primary interface class with the data store object The primary
         interface class/object is used when there are no other specified parameters.
