@@ -77,9 +77,7 @@ class DAOMediator:
             )
 
         # Create a signature based on the arguments
-        argument_signature = self.signature_factory.create_argument_signature(
-            method_args, signature
-        )
+        argument_signature = self.signature_factory.create_argument_signature(method_args, signature)
 
         # Extract the name of the data store
         data_object = method_args.get("data_object")
@@ -94,9 +92,7 @@ class DAOMediator:
             # If not, we need to initiate it
             if not (data_store, data_class) in self._initialized:
 
-                self.data_store_factory.initialize_data_class(
-                    data_store, data_class
-                )
+                self.data_store_factory.initialize_data_class(data_store, data_class)
                 self.dao_router.create_routes_from_data_object(
                     data_store,
                     data_store_object.get_interface_object(data_class),
@@ -105,8 +101,6 @@ class DAOMediator:
 
         # If the dao is not lazy, we can safely assume all the data stores
         # are initiated, and we can proceed to choose routes
-        route = self.dao_router.choose_route(
-            argument_signature, data_store, caller, confs
-        )
+        route = self.dao_router.choose_route(argument_signature, data_store, caller, confs)
 
         return route["method"]
