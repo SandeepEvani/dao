@@ -5,36 +5,29 @@ import inspect
 from sys import _getframe
 from typing import Any
 
+from dao.utils.singleton import singleton
 from src.dao.core.dao_interface import IDAO
 
 from .dao_mediator import DAOMediator
 
 
+@singleton
 class DAO(IDAO):
     """This is the Data Access Object class, this is used to create data access object
-    to read/write data from different sources and is extendable to multiple classes.
+    to read, write or execute operations on data from different
+    sources and is extendable to multiple classes.
 
-    The DAO object pre-registers all the methods required for reading and writing data,
-    creates a route table out of different method's acceptable signatures and based upon
+    The DAO object pre-registers all the methods required for reading, writing and executing data,
+    creates a route table from different method's acceptable signatures and based upon
     the input of the user arguments during the runtime the appropriate method is chosen
-    and is used to execute the read/write operation. All this heavy lifting is
+    and is used to execute the read/write/run operation. All this heavy lifting is
     abstracted from the user using the package and gives an easy interface while writing
     the main application code.
     """
 
-    __INTERFACE_IDENTIFIER = "dao_interface_class"
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        # Creates a singleton class of DAO
-        if getattr(cls, "_instance") is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
     def __init__(self):
         """Initialize the DAO class."""
         self.__mediator = None
-        self.__lazy = None
 
     def init(self, data_stores: str, lazy=False) -> None:
         """Initialize the DAO Class where ever/ when ever the user needs.
@@ -44,7 +37,7 @@ class DAO(IDAO):
         :return: None
         """
 
-        self.__lazy = lazy
+        self._lazy = lazy
 
         # Checks for the private attribute, if the init function is run the second time,
         # The init block errors the process
@@ -57,6 +50,7 @@ class DAO(IDAO):
         # register the read and write signatures
         self.__mediator.register_signature(self.write)
         self.__mediator.register_signature(self.read)
+        self.__mediator.register_signature(self.run)
 
     def write(self, data, data_object, **kwargs) -> Any:
         """Triggers the appropriate writer method across all the registered methods
@@ -107,6 +101,34 @@ class DAO(IDAO):
         result = self.__data_access_logic(provided_args)
 
         return result
+
+    def run(self, data_object, **kwargs):
+        """Triggers the appropriate runner method across all the registered methods
+        based on the input parameters received.
+
+        :param data_object: The corresponding data object from which the data has to be
+            read.
+        :param kwargs: Any other keyword args that are either used as
+            configurations/settings for deciding the appropriate run method or a part
+            of the method arguments that are passed on to the runner methods. Any
+            Keyword argument starting with 'dao_' will be considered as a setting for
+            the DAO class but not as an argument to the runner methods, hence all the
+            arguments with the prefix 'dao_' are filtered before creating the signature
+            object
+        :return: Any. the return of the method is the value returned after executing the
+            respective reader method based on the input arguments"""
+
+        # Take a snapshot of local args. i.e. the provided args
+        provided_args = locals().copy()
+
+        # calls the data access logic
+        result = self.__data_access_logic(provided_args)
+
+        return result
+
+    @property
+    def is_lazy(self):
+        return self._lazy
 
     def __data_access_logic(self, provided_args):
         """The Data access logic used by the read and write methods in the DAO.

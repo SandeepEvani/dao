@@ -4,22 +4,17 @@
 from sys import _getframe
 from typing import Callable
 
+from dao.utils.singleton import singleton
+
 from ..data_store.data_store_factory import DataStoreFactory
 from .router.router import Router
 from .signature.signature_factory import SignatureFactory
 
 
+@singleton
 class DAOMediator:
     """Mediator is used to interoperate between the DAO class and the Signature and
     Router classes providing a common hub for all the involved classes."""
-
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        # Creates a singleton class of DAOMediator
-        if getattr(cls, "_instance") is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     def __init__(self, config_location: str, lazy: bool):
         """Initializes the Mediator class.
@@ -71,10 +66,8 @@ class DAOMediator:
         caller = _getframe(2).f_code.co_name
         signature = self.operation.get(caller)
 
-        if caller not in ("read", "write"):
-            raise ValueError(
-                f"Invalid caller function '{caller}'. Expected either 'read' or 'write'."
-            )
+        if caller not in ("read", "write", "run"):
+            raise ValueError(f"Invalid caller function '{caller}'. Expected either 'read', 'write' or 'run'.")
 
         # Create a signature based on the arguments
         argument_signature = self.signature_factory.create_argument_signature(method_args, signature)

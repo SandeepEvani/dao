@@ -15,6 +15,7 @@ class Router:
 
     read_methods_predicate: str = "read"
     write_methods_predicate: str = "write"
+    run_methods_predicate: str = "run"
 
     def __init__(self):
         """Initializes the Router class."""
@@ -82,6 +83,7 @@ class Router:
         predicated_methods = filter(
             lambda x: x[0].startswith(self.write_methods_predicate)
             or x[0].startswith(self.read_methods_predicate)
+            or x[0].startswith(self.run_methods_predicate)
             or (
                 getattr(x[1], "__dao_register__", False) is True
                 and getattr(x[1], "__dao_register_params__", None) is not None
@@ -209,6 +211,9 @@ class Router:
 
         elif function.__name__.startswith("write"):
             return "write"
+
+        elif function.__name__.startswith("run"):
+            return "run"
 
         else:
             raise ValueError("Cannot get the method type")
