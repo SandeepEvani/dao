@@ -2,6 +2,7 @@
 # Description : Defines the DAO Interface
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class IDAO(ABC):
@@ -9,13 +10,18 @@ class IDAO(ABC):
     class and the necessary methods in the class."""
 
     @abstractmethod
-    def write(self, data, destination, *args, **kwargs):
-        """Writes data to an appropriate location :return:"""
+    def write(self, data, data_object, **kwargs) -> Any:
+        """Writes data to an appropriate location :return: Any"""
         return True
 
     @abstractmethod
-    def read(self, source, *args, **kwargs):
-        """Reads data from an appropriate location :return:"""
+    def read(self, data_object, **kwargs) -> Any:
+        """Reads data from an appropriate location :return: Any"""
+        return True
+
+    @abstractmethod
+    def run(self, data_object, **kwargs) -> Any:
+        """Execute code/statements in respective data stores :return: Any"""
         return True
 
     def __repr__(self):
