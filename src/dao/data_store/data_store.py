@@ -35,6 +35,16 @@ class DataStore:
         for attribute, value in properties.items():
             setattr(self, attribute, value)
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        if self.name is not None:
+            raise ValueError("Attribute `name` is already set, cannot modify `name`")
+        self._name = value
+
     def set_primary_interface_class(self, class_) -> None:
         """Registers the primary interface class with the data store object The primary
         interface class/object is used when there are no other specified parameters.
