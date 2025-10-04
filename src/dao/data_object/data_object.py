@@ -21,6 +21,10 @@ class DataObject:
         self.name = name
         self.data_store = data_store
 
+        # Assigns data stores parameters
+        for k, v in vars(data_store).items():
+            if not k.startswith("_"):
+                setattr(self, k, v)
 
     @property
     def name(self):
