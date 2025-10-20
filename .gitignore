@@ -1,8 +1,38 @@
-.git/
-.idea/
-
+# Python
 __pycache__/
 **/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+.venv/
+env/
+venv/
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 .ipynb_checkpoints/
-.venv/
+
