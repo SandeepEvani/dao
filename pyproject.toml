@@ -17,3 +17,12 @@ line-length = 120
 
 [tool.isort]
 profile = "black"
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "isort>=7.0.0",
+    "pre-commit>=4.3.0",
+    "ruff>=0.14.1",
+    "uv-build>=0.9.4",
+]
