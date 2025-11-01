@@ -7,7 +7,7 @@ from dao.utils.singleton import singleton
 
 
 @singleton
-class DAO:
+class DataAccessObject:
     def __init__(self, data_stores: dict):
         """ """
 
