@@ -44,13 +44,8 @@ class DataAccessor:
         :return:
         """
 
-        # Take a snapshot of local args. i.e. the provided args
-        provided_args = locals().copy()
-
-        print(provided_args)
-
         # calls the data access logic
-        result = self.data_access_logic(provided_args)
+        result = self.data_access_logic(locals().copy())
 
         return result
 
