@@ -7,12 +7,12 @@ import inspect
 
 
 class Signature:
-    """Base signature class for creating and maintaining different method and argument
+    """Base signature class for creating and maintaining method and argument
     signatures, uses the signature class from inspect module and some other metadata
     useful for comparison."""
 
     def __init__(self, signature: inspect.Signature):
-        """Initialized the signature class, with the signature object created using the
+        """Initializes the signature class, with the signature object created using the
         `inspect.Signature` class and analyzes the signature to create and store
         metadata with respect to the signature.
 
