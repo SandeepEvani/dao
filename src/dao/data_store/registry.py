@@ -1,5 +1,6 @@
 # registry.py
 # Stores data store configurations
+
 from dao.data_store import DataStoreFactory
 
 
