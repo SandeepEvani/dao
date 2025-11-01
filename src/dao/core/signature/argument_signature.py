@@ -1,8 +1,6 @@
 # argument_signature
 # creates argument signatures for the given args
 
-from __future__ import annotations
-
 import inspect
 import types
 import typing
