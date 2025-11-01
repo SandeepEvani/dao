@@ -1,12 +1,12 @@
 # router.py
 # routes to appropriate data access method
 
-from inspect import getmembers, ismethod, signature
+from inspect import getmembers, ismethod
 from itertools import chain
 
 from pandas import DataFrame, Series, concat
 
-from ..signature.signature_factory import SignatureFactory
+from dao.core.signature.signature_factory import SignatureFactory
 
 
 class Router:
@@ -21,22 +21,10 @@ class Router:
         # Creates the route table
         self.routes = DataFrame()
 
-        # variable to hold method signatures
-        self._signatures = {}
-
-    def register_signature(self, method) -> None:
-        """Registers the signature of different DAO methods.
-
-        :param method: The callable of which the signature is to be registered
-        """
-
-        self._signatures[method.__name__] = signature(method)
-
     def choose_route(self, arg_signature, data_store: str, confs) -> Series:
         """choose_route method is used to choose the required data access method based
         on the method args provided to the operator function.
 
-        :param method_type:
         :param arg_signature: The argument signature created on the passed arguments
         :param data_store: The data store to which the data is being accessed
         :param confs: extra configuration options for Router
