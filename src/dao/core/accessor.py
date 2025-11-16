@@ -1,9 +1,9 @@
 # accessor.py
 # Defines the data access logic
 
-from inspect import Parameter
-from inspect import signature as signature_generator
-from typing import Optional
+from functools import partial
+from inspect import Parameter, signature
+from typing import Callable, Optional
 
 from dao.core.router import Router
 from dao.core.signature import SignatureFactory
@@ -19,7 +19,14 @@ class DataAccessor:
 
     _initialized = set()
 
-    def __init__(self, signature: Optional[dict] = None, doc_string: Optional[str] = None):
+    def __init__(
+        self,
+        function: Callable = None,
+        *,
+        name: Optional[str] = None,
+        doc_string: Optional[str] = None,
+        data_object: Optional[str] = None,
+    ):
         """Initialize the DataAccessor with method signature and documentation.
 
         Args:
@@ -27,8 +34,11 @@ class DataAccessor:
                       If None, uses the signature of the accessor_function.
             doc_string: Optional documentation string for the accessor method.
         """
-        if signature is None:
-            self.signature = signature_generator(self.accessor_function)
+
+        self.function = function
+        self.signature = signature(function)
+
+        self.name = name
         self.doc_string = doc_string
 
         self.signature_factory = SignatureFactory()
@@ -190,3 +200,27 @@ class DataAccessor:
                 method_args.update({arg_key: args[arg_key]})
 
         return method_args, confs
+
+
+def data_accessor(
+    function: Callable = None,
+    *,
+    name: Optional[str] = None,
+    doc_string: Optional[str] = None,
+    data_object: Optional[str] = None,
+):
+    """Decorator to create a DataAccessor descriptor for DAO methods.
+
+    Args:
+        function: The accessor function to be decorated.
+        name: Optional name for the accessor.
+        doc_string: Optional documentation string for the accessor.
+        data_object: Optional data object identifier.
+
+    Returns:
+        An instance of DataAccessor wrapping the provided function.
+    """
+    if function is None:
+        return partial(DataAccessor, name=name, doc_string=doc_string, data_object=data_object)
+
+    return DataAccessor(function, name=name, doc_string=doc_string, data_object=data_object)

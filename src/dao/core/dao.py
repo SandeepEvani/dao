@@ -1,7 +1,8 @@
 # dao.py
 # Implementation of the DAO
 
-from dao.core.accessor import DataAccessor
+from dao.core.accessor import data_accessor
+from dao.data_object import DataObject
 from dao.data_store import DataStoreRegistry
 from dao.utils.singleton import singleton
 
@@ -26,88 +27,90 @@ class DataAccessObject:
         self.data_stores = data_stores
         DataStoreRegistry.initialize(data_stores)
 
-    # Create data accessor methods to access the respective data methods
-    # DataAccessor descriptor helps you create multiple data access actions across
+    @data_accessor
+    def read(self, data_object: DataObject, **kwargs):
+        """Read data from the specified data object.
 
-    read = DataAccessor(
-        doc_string="""Read data from data stores.
+        Retrieves data from a data object using the appropriate interface method
+        based on the provided parameters. The router automatically selects the
+        best matching interface implementation.
+        """
 
-    Provides read operations for retrieving data from configured data stores.
-    """
-    )
+    @data_accessor
+    def write(self, data, data_object: DataObject, **kwargs):
+        """Write data to the specified data object.
 
-    write = DataAccessor(
-        doc_string="""Write data to data stores.
+        Persists data to a data object using the appropriate interface method.
+        Supports various formats and configurations based on the target data store.
+        """
 
-    Provides write operations for storing data to configured data stores.
-    """
-    )
+    @data_accessor
+    def upsert(self, data, data_object: DataObject, **kwargs):
+        """Insert or update data in the specified data object.
 
-    upsert = DataAccessor(
-        doc_string="""Upsert (update or insert) data in data stores.
+        Performs an upsert operation - inserts new records or updates existing ones
+        based on matching keys. Useful for idempotent data synchronization.
+        """
 
-    Provides upsert operations that update existing records or insert new ones
-    if they don't exist.
-    """
-    )
+    @data_accessor
+    def delete(self, data_object: DataObject, **kwargs):
+        """Delete data from the specified data object.
 
-    delete = DataAccessor(
-        doc_string="""Delete data from data stores.
+        Removes data from a data object based on filter conditions provided in kwargs.
+        Use with caution as this operation is destructive.
+        """
 
-    Provides delete operations for removing data from configured data stores.
-    """
-    )
+    @data_accessor
+    def run(self, action: str, data_object: DataObject, **kwargs):
+        """Execute a custom action on the specified data object.
 
-    run = DataAccessor(
-        doc_string="""Execute data operations or commands.
+        Runs arbitrary backend-specific operations or workflows on a data object.
+        The action string determines the operation to perform.
+        """
 
-    Provides operations for executing custom commands or procedures on data stores.
-    """
-    )
+    @data_accessor
+    def list(self, data_object: DataObject, **kwargs):
+        """List contents or metadata of the specified data object.
 
-    list = DataAccessor(
-        doc_string="""List data elements or collections.
+        Returns a list of items, files, or records contained within the data object.
+        Useful for discovering available data without loading it all.
+        """
 
-    Provides operations for listing available data elements, collections,
-    or resources in data stores.
-    """
-    )
+    @data_accessor
+    def count(self, data_object: DataObject, **kwargs):
+        """Count records or items in the specified data object.
 
-    count = DataAccessor(
-        doc_string="""Count data elements.
+        Returns the total number of records or items in a data object.
+        More efficient than reading all data when only count is needed.
+        """
 
-    Provides operations for counting data elements that match specific criteria.
-    """
-    )
+    @data_accessor(data_object="source")
+    def move(self, source: DataObject, destination: DataObject, **kwargs):
+        """Move data from source to destination data object.
 
-    move = DataAccessor(
-        doc_string="""Move data between locations or stores.
+        Transfers data from one data object to another, typically removing it
+        from the source after successful transfer.
+        """
 
-    Provides operations for moving data from one location to another within
-    or between data stores.
-    """
-    )
+    @data_accessor(data_object="source")
+    def copy(self, source: DataObject, destination: DataObject, **kwargs):
+        """Copy data from source to destination data object.
 
-    copy = DataAccessor(
-        doc_string="""Copy data between locations or stores.
+        Creates a replica of data from the source data object to the destination,
+        leaving the source data intact.
+        """
 
-    Provides operations for copying data from one location to another within
-    or between data stores.
-    """
-    )
+    @data_accessor
+    def read_stream(self, data_object: DataObject, **kwargs):
+        """Read data from the specified data object as a stream.
 
-    read_stream = DataAccessor(
-        doc_string="""Read data as a stream.
+        Retrieves data in streaming fashion for memory-efficient processing
+        of large datasets without loading everything into memory at once.
+        """
 
-    Provides streaming read operations for handling large datasets or
-    continuous data flows.
-    """
-    )
+    @data_accessor
+    def write_stream(self, data_stream, data_object: DataObject, **kwargs):
+        """Write streaming data to the specified data object.
 
-    write_stream = DataAccessor(
-        doc_string="""Write data as a stream.
-
-    Provides streaming write operations for handling large datasets or
-    continuous data flows.
-    """
-    )
+        Persists streaming data (generators, iterators) to a data object,
+        enabling efficient handling of continuous data flows without buffering."""
