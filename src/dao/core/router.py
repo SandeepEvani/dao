@@ -1,214 +1,230 @@
 # router.py
-# routes to appropriate data access method
+# Routes data access operations to appropriate interface methods
 
 from inspect import getmembers, ismethod
-from itertools import chain
-
-from pandas import DataFrame, Series, concat
+from typing import Any, Dict, List
 
 from dao.core.signature.signature_factory import SignatureFactory
 
 
 class Router:
-    """Router class stores all the appropriate methods from all the interface classes
-    and their respective function signatures and manages the route table."""
+    """Intelligent router that matches data access operations to appropriate interface methods.
 
-    def __init__(self, action):
-        """Initializes the Router class."""
+    The Router manages a table of available methods from all registered interfaces and uses
+    method signatures to intelligently route DAO calls to the best matching implementation.
+    It supports:
+    - Multiple data stores with different interfaces
+    - Primary and fallback interface selection
+    - Signature-based method matching
+    - Custom method registration via @register decorator
 
-        self.action = action
+    Attributes:
+        action (str): The action type (read, write, run, etc.) this router handles.
+        routes (List[Dict]): Route table containing method metadata and signatures for fast lookup.
+    """
 
-        # Creates the route table
-        self.routes = DataFrame()
+    def __init__(self, action: str) -> None:
+        """Initialize the Router with an action type.
 
-    def choose_route(self, arg_signature, data_store: str, confs) -> Series:
-        """choose_route method is used to choose the required data access method based
-        on the method args provided to the operator function.
-
-        :param arg_signature: The argument signature created on the passed arguments
-        :param data_store: The data store to which the data is being accessed
-        :param confs: extra configuration options for Router
-        :return: A suitable method based on the input signature
+        Args:
+            action (str): The data access action this router handles (e.g., 'read', 'write').
         """
+        self.action = action
+        # Route table: list of dictionaries containing method metadata and signatures
+        self.routes: List[Dict[str, Any]] = []
 
-        # Filters the route table for unwanted routes
-        search_space: DataFrame = self.filter_routes(data_store, arg_signature.len_all_args, self.action, confs)
+    def choose_route(self, arg_signature, data_store: str, confs: Dict[str, Any]) -> Dict[str, Any]:
+        """Select the best matching route for the given arguments and data store.
 
+        This method filters available routes and finds the first (best) matching method
+        based on the argument signature. Routes are pre-sorted by preference during
+        table creation.
+
+        Args:
+            arg_signature: The argument signature created from method arguments.
+            data_store (str): The data store identifier for the operation.
+            confs (Dict[str, Any]): Configuration options for routing.
+
+        Returns:
+            Dict[str, Any]: A route dictionary containing method and metadata.
+
+        Raises:
+            RuntimeError: If no compatible method is found for the given signature.
+        """
+        # Filter routes for this data store, action, and argument length
+        search_space = self.filter_routes(data_store, arg_signature.len_all_args, self.action)
+
+        # Find and return the first matching route
         route = self.get_route(search_space, arg_signature, confs)
-
         return route
 
-    def filter_routes(self, datastore, length, method_type, confs) -> DataFrame:
-        """Filters the routes based on the datastore class, length and the method/caller
-        type.
+    def filter_routes(self, data_store: str, arg_length: int, action: str) -> List[Dict[str, Any]]:
+        """Filter routes based on data store, action, and argument count.
 
-        :param method_type:
-        :param datastore: The Data Store identifier
-        :param length: The number of args that are passed to the DAO
-        :param confs: extra configuration options for the Router
-        :return:
+        Routes are filtered to match:
+        - The target data store identifier
+        - The action type (read, write, run, etc.)
+        - Argument count compatibility (method's non-var args <= provided args)
+
+        Args:
+            data_store (str): Data store identifier to filter by.
+            arg_length (int): Number of arguments provided to the DAO method.
+            action (str): Action type (read, write, run, etc.).
+
+        Returns:
+            List[Dict[str, Any]]: Filtered routes matching the criteria.
         """
-
-        return self.routes.loc[
-            (self.routes["identifier"] == datastore)
-            & (self.routes["method_type"] == method_type)
-            & (self.routes["length_non_var_args"] <= length)
+        return [
+            route
+            for route in self.routes
+            if (route["identifier"] == data_store and route["length_non_var_args"] <= arg_length)
         ]
 
-    def _list_methods_with_predicate(self, interface_object):
-        """For an interface object, this function returns an iterable of functions that
-        have a prefix <Router.read_methods_predicate> or
-        <Router.write_methods_predicate> or were registered by the `dao.register`
-        function.
+    def _list_methods_with_predicate(self, interface_object) -> List:
+        """Extract methods from interface that match the action predicate.
 
-        :param interface_object: The Interface object created from the data store confs
-        :return: A list of all the methods that are filtered by the router
+        Finds all methods on the interface object that either:
+        1. Start with the action prefix (e.g., 'read_' for read action)
+        2. Are registered via @register decorator with matching action
+
+        Args:
+            interface_object: The interface instance to extract methods from.
+
+        Returns:
+            List: Methods matching the action predicate.
+        """
+        predicated_methods = []
+
+        for method_name, method in getmembers(interface_object, predicate=ismethod):
+            # Check if method name starts with the action prefix
+            if method_name.startswith(self.action):
+                predicated_methods.append(method)
+            # Check if the method is registered with matching action
+            elif (
+                getattr(method, "__dao_register__", False) is True
+                and getattr(method, "__dao_register_params__") == self.action
+            ):
+                predicated_methods.append(method)
+
+        return predicated_methods
+
+    def get_route(
+        self, search_space: List[Dict[str, Any]], argument_signature, confs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Find the first compatible route from the search space.
+
+        Routes are pre-sorted by preference, so the first match is the best match.
+        Compatibility is determined by the argument signature's is_compatible method.
+
+        Args:
+            search_space (List[Dict]): Pre-filtered list of candidate routes.
+            argument_signature: The argument signature to match against.
+            confs (Dict[str, Any]): Configuration options.
+
+        Returns:
+            Dict[str, Any]: The matched route containing the method and metadata.
+
+        Raises:
+            RuntimeError: If no compatible method is found in the search space.
         """
 
-        # filter methods on the given conditions
-        predicated_methods = filter(
-            lambda x: x[0].startswith(self.action)
-            or (
-                getattr(x[1], "__dao_register__", False) is True
-                and getattr(x[1], "__dao_register_params__", None) is not None
-                and getattr(x[1], "__dao_register_params__")[0] == self.action
-            ),
-            getmembers(interface_object, predicate=ismethod),
-        )
+        if not search_space:
+            raise RuntimeError("No methods available for the specified data store and action")
 
-        method_pointers = list(map(lambda x: x[1], predicated_methods))
-
-        return method_pointers
-
-    @staticmethod
-    def _get_method_signatures(methods):
-        """This method takes different functions and returns possible combinations of
-        signatures.
-
-        :param methods: Iterable consisting required methods to build signatures for.
-        :returns: Mapping object of different signatures
-        """
-
-        return SignatureFactory().create_method_signature(methods)
-
-    @staticmethod
-    def get_route(search_space, argument_signature, confs):
-        """Loops over the search_space to get the compatible route based on the argument
-        signature.
-
-        :param search_space: The filtered section of the route table
-        :param argument_signature: The Argument Signature created from the args passed
-            to the DAO class
-        :param confs: Extra configurations for the router object
-        :return: Returns the route from the search space
-        """
-
-        # Iterates over the search space and returns the first match
-        for _, route in search_space.iterrows():
+        for route in search_space:
             if argument_signature.is_compatible(route["signature"]):
                 return route
-        else:
-            raise RuntimeError("No Compatible Method Found")
 
-    def create_routes_from_data_stores(self, data_stores) -> None:
-        """Creates the route table from the data stores.
-
-        :param data_stores: collection of data stores
-        :return: None
-        """
-
-        # Gets the details from each data store
-        dao_objects = chain.from_iterable(
-            (
-                [(data_object, data_store.name) for data_object in data_store.get_interface_objects()]
-                for data_store in data_stores
-            )
-        )
-
-        # Creates the route table from the respective details
-        base_table = DataFrame(dao_objects, columns=["interface_object", "identifier"])
-
-        route_table = self._create_route_table(base_table)
-        self.routes = concat((self.routes, route_table))
-
-        return
+        raise RuntimeError(f"No compatible method found for action '{self.action}'")
 
     def create_routes_from_interface_object(self, data_store: str, interface_object) -> None:
-        """Creates the route table from the data stores.
+        """Create and register routes from a single interface object.
 
-        :param data_store: collection of data stores
-        :param interface_object: collection of data stores
-        :return: None
+        Extracts all applicable methods from the interface and creates route entries
+        for each method signature combination. Routes are automatically sorted by
+        preference to enable efficient first-match semantics in choose_route.
+
+        Args:
+            data_store (str): Identifier for the data store this interface belongs to.
+            interface_object: The interface instance to extract methods from.
+
+        Returns:
+            None
         """
+        # Extract methods matching this action
+        methods = self._list_methods_with_predicate(interface_object)
 
-        # Creates the route table from the respective details
-        base_table = DataFrame(
-            [(data_store, interface_object)],
-            columns=["identifier", "interface_object"],
+        # Create route entries for each method and its signature variants
+        new_routes = self._create_route_entries(
+            interface_object=interface_object, methods=methods, data_store=data_store
         )
 
-        route_table = self._create_route_table(base_table)
-        self.routes = concat((self.routes, route_table))
+        # Merge new routes into the route table, maintaining sort order
+        self.routes.extend(new_routes)
+        self._sort_routes()
 
-    def _create_route_table(self, base_table: DataFrame) -> DataFrame:
-        """Creates the route table from the data stores.
+    def _create_route_entries(self, interface_object, methods: List, data_store: str) -> List[Dict[str, Any]]:
+        """Create route entries for all methods and their signature combinations.
 
-        :param base_table: collection of data stores
-        :return: None
+        This is the core route generation logic. For each method:
+        1. Get method metadata (type, preference, class name)
+        2. Generate all possible signatures for the method
+        3. Create route entry for each signature variant
+
+        The resulting routes are pre-sorted by preference to enable efficient
+        first-match semantics in choose_route.
+
+        Args:
+            interface_object: The interface instance (for getting class name).
+            methods (List): Methods to create routes for.
+            data_store (str): Data store identifier.
+
+        Returns:
+            List[Dict[str, Any]]: Created route entries sorted by preference.
         """
+        routes = []
+        interface_class = interface_object.__class__.__name__
 
-        base_table["interface_class"] = base_table["interface_object"].apply(lambda x: x.__class__.__name__)
+        for method in methods:
+            # Generate all signature variants for this method
+            signatures = SignatureFactory().create_method_signature(method)
+            if not isinstance(signatures, list):
+                signatures = [signatures]
 
-        base_table["method"] = base_table["interface_object"].apply(self._list_methods_with_predicate)
-        base_table = base_table.explode("method")
+            # Create a route entry for each signature variant
+            for signature in signatures:
+                route_entry = {
+                    "identifier": data_store,
+                    "interface_class": interface_class,
+                    "method": method,
+                    "method_name": method.__name__,
+                    "signature": signature,
+                    "length_non_var_args": signature.len_non_var_args,
+                    "length_all_args": signature.len_all_args,
+                }
+                routes.append(route_entry)
 
-        base_table["signature"] = base_table["method"].apply(SignatureFactory().create_method_signature)
+        return routes
 
-        base_table["method_type"] = base_table["method"].apply(self._get_method_type)
-        base_table["preference"] = base_table["method"].apply(self._get_method_preference)
+    def _sort_routes(self) -> None:
+        """Sort routes by preference for efficient first-match routing.
 
-        base_table = base_table.explode("signature")
+        Routes are sorted by:
+        1. identifier (data store) - primary grouping
+        2. length_non_var_args - descending (prefer exact matches)
+        3. preference - ascending (lower preference values have priority)
+        4. length_all_args - ascending (prefer fewer total args)
 
-        base_table["length_non_var_args"] = base_table["signature"].apply(lambda x: x.len_non_var_args)
-        base_table["length_all_args"] = base_table["signature"].apply(lambda x: x.len_all_args)
+        This sort order ensures that when filtering by data store and method type,
+        the first matching route is always the best choice.
 
-        route_table = base_table.sort_values(
-            [
-                "identifier",
-                "length_non_var_args",
-                "preference",
-                "length_all_args",
-            ],
-            ascending=[True, False, True, True],
-        ).reset_index(drop=True)
-
-        return route_table
-
-    @staticmethod
-    def _get_method_type(function):
-        """Get the method type for the given method."""
-
-        if hasattr(function, "__dao_register_params__"):
-            return getattr(function, "__dao_register_params__")[0]
-
-        elif function.__name__.startswith("read"):
-            return "read"
-
-        elif function.__name__.startswith("write"):
-            return "write"
-
-        elif function.__name__.startswith("run"):
-            return "run"
-
-        else:
-            raise ValueError("Cannot get the method type")
-
-    @staticmethod
-    def _get_method_preference(function):
-        """Get the method preference for the given method."""
-
-        if hasattr(function, "__dao_register_params__"):
-            return getattr(function, "__dao_register_params__")[1]
-
-        else:
-            return 0
+        Returns:
+            None
+        """
+        self.routes.sort(
+            key=lambda r: (
+                r["identifier"],
+                -r["length_non_var_args"],  # Descending: more specific first
+                r["length_all_args"],  # Ascending: fewer args first
+            )
+        )
