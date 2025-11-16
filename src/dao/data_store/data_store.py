@@ -53,7 +53,7 @@ class DataStore:
         """Registers the primary interface object with the data store object The primary
         interface class/object is used when there are no other specified parameters.
 
-        :param obj: The object which is used as the primary interface
+        :param obj: The object which is used as the primary interface.
         :return: None
         """
 
