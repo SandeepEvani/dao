@@ -86,7 +86,7 @@ class DataAccessObject:
 
     @data_accessor(data_object="source")
     def move(self, source: DataObject, destination: DataObject, **kwargs):
-        """Move data from source to destination data object.
+        """Move data from source to the destination data object.
 
         Transfers data from one data object to another, typically removing it
         from the source after successful transfer.
@@ -94,7 +94,7 @@ class DataAccessObject:
 
     @data_accessor(data_object="source")
     def copy(self, source: DataObject, destination: DataObject, **kwargs):
-        """Copy data from source to destination data object.
+        """Copy data from source to the destination data object.
 
         Creates a replica of data from the source data object to the destination,
         leaving the source data intact.
