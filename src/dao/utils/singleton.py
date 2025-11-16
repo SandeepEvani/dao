@@ -2,9 +2,10 @@
 # Contains helper functions to create singleton objects
 
 from functools import wraps
+from typing import Callable
 
 
-def singleton(class_):
+def singleton(class_: type) -> Callable:
     """A Class decorator used to create singleton classes"""
 
     # Placeholder to store the class instance

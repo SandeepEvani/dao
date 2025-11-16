@@ -1,8 +1,10 @@
 # registrar.py
 # registers methods from the interface class to the DAO
 
+from typing import Callable
 
-def register(mode: str, preference: int = 0):
+
+def register(mode: str) -> Callable:
     def internal_wrapper(method):
         """Monkey patches the method provided with the external parameters
         marking it for the DAO class to recognize the method as well as
@@ -13,7 +15,7 @@ def register(mode: str, preference: int = 0):
         """
 
         setattr(method, "__dao_register__", True)
-        setattr(method, "__dao_register_params__", (mode, preference))
+        setattr(method, "__dao_register_params__", mode)
 
         return method
 
