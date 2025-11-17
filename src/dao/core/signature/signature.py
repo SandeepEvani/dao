@@ -1,63 +1,54 @@
-# signature
-# defines the signature class
+# signature.py
+# Core signature classes for method and argument analysis
 
 from __future__ import annotations
 
 import inspect
 
+from .parameter_analyzer import ParameterAnalyzer
+
 
 class Signature:
-    """Base signature class for creating and maintaining method and argument
-    signatures, uses the signature class from inspect module and some other metadata
-    useful for comparison."""
+    """Base class for analyzing and comparing method/argument signatures.
+
+    Wraps inspect.Signature and provides metadata analysis through composition.
+    Clean separation: Signature manages the signature object, ParameterAnalyzer
+    handles parameter metadata extraction.
+    """
 
     def __init__(self, signature: inspect.Signature):
-        """Initializes the signature class, with the signature object created using the
-        `inspect.Signature` class and analyzes the signature to create and store
-        metadata with respect to the signature.
+        """Initialize signature analysis.
 
-        :parameter signature: The signature object of type inspect.Signature
+        Args:
+            signature: The signature object from inspect.signature() or inspect.Signature()
         """
-
-        self.has_var_args = False
-
-        self.all_args = []
-        self.var_pos_args = []
-        self.var_key_args = []
-        self.non_var_args = []
         self.signature = signature
+        self.metadata = ParameterAnalyzer.analyze(signature)
 
-        self._analyse_args(signature)
+    @property
+    def all_args(self) -> list[str]:
+        """All parameter names in order."""
+        return self.metadata.all_args
 
-        self.len_all_args = len(self.all_args)
-        self.len_non_var_args = len(self.non_var_args)
+    @property
+    def non_var_args(self) -> list[str]:
+        """Regular parameters (not *args or **kwargs)."""
+        return self.metadata.non_var_args
 
-    def _analyse_args(self, signature):
-        """Loops over the signature parameters and their types and creates a metadata
-        dictionary based on the parameters."""
+    @property
+    def has_var_args(self) -> bool:
+        """Whether signature accepts *args or **kwargs."""
+        return self.metadata.has_var_args
 
-        self.all_args = list(signature.parameters.keys())
+    @property
+    def len_all_args(self) -> int:
+        """Total parameter count."""
+        return self.metadata.len_all_args
 
-        # Loops over different params in the signature class
-        for parameter_key, parameter_value in signature.parameters.items():
-            # Checks if any variable args are present,
-            # if present it adds them into the non var args list
-            # if not, flips the has_var_args flag
+    @property
+    def len_non_var_args(self) -> int:
+        """Non-variadic parameter count."""
+        return self.metadata.len_non_var_args
 
-            if parameter_value.kind not in (
-                inspect.Parameter.VAR_KEYWORD,
-                inspect.Parameter.VAR_POSITIONAL,
-            ):
-                self.non_var_args.append(parameter_key)
-            else:
-                if not self.has_var_args:
-                    self.has_var_args = True
-
-            # Checks for variable keyword args and variable position args
-            if parameter_value.kind == inspect.Parameter.VAR_KEYWORD:
-                self.var_key_args = [parameter_key]
-            elif parameter_value.kind == inspect.Parameter.VAR_POSITIONAL:
-                self.var_pos_args = [parameter_key]
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.signature.__repr__()
