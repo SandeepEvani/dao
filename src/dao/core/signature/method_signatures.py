@@ -1,11 +1,14 @@
-# method_signatures
-# creates acceptable signatures for a given method
+# method_signatures.py
+# Represents method signatures from interface classes
 
 from .signature import Signature
 
 
 class MethodSignature(Signature):
-    """Method signature represents the provided method signature generated from the
-    signature factory."""
+    """Signature of a method from an interface class.
+
+    Extends Signature with all inherited parameter analysis capabilities.
+    Semantic clarity: This represents a method signature specifically.
+    """
 
     pass
