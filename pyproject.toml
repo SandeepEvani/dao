@@ -16,3 +16,9 @@ dao = "dao:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"

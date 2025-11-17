@@ -1,7 +1,7 @@
 # data_store_factory.py
 # Creates instances of DataStore
 
-from importlib import import_module
+from importlib import import_module, resources
 from json import load
 from typing import Optional
 
@@ -31,7 +31,7 @@ class DataStoreFactory:
         data_stores = self.confs["data_stores"]
         for identifier, properties in data_stores.items():
             # Create the data store object
-            DataStore(identifier)
+            DataStore(identifier, **properties.get("properties", {}))
 
     def initialize_all_data_classes(self):
         """Creates the data stores from the given datastore confs.
@@ -42,7 +42,6 @@ class DataStoreFactory:
         # Gets the list of data stores from the confs
         data_stores = self.confs["data_stores"]
         for identifier, properties in data_stores.items():
-
             interface_object = self._initialize_class(properties)
 
             # Create the data store object
@@ -50,7 +49,6 @@ class DataStoreFactory:
             data_store.set_primary_interface_object(interface_object)
 
             for secondary_interface in properties.get("secondary_interfaces", []):
-
                 interface_object = self._initialize_class(secondary_interface)
                 data_store.set_secondary_interface_object(interface_object)
 
@@ -92,7 +90,9 @@ class DataStoreFactory:
         # Instantiate the interface class
         interface_object = interface_class(**properties["default_configs"])
 
-        data_store_object = DataStore.get_data_store(data_store) or DataStore(data_store)
+        data_store_object = DataStore.get_data_store(data_store) or DataStore(
+            data_store, **properties.get("properties", {})
+        )
 
         if is_primary:
             data_store_object.set_primary_interface_class(interface_class)
@@ -105,7 +105,6 @@ class DataStoreFactory:
 
     @staticmethod
     def _initialize_class(properties):
-
         # infer the class and location from the properties
         interface_class_name = properties["interface_class"]
         class_path = properties["interface_class_location"]
@@ -120,7 +119,7 @@ class DataStoreFactory:
         return interface_object
 
     def validate(self):
-        """"""
+        """ """
         # TODO: Build a validation  block to check if all the
         #  modules are present at the specified locations without importing them
         return True
