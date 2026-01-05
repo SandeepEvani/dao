@@ -73,8 +73,7 @@ class DataAccessor:
         """Retrieve the accessor function when accessed as a descriptor.
 
         This method is called when the accessor is accessed as a class attribute.
-        It lazy-creates and caches the accessor function, then binds it to the
-        instance if one is provided (making it a bound method).
+        It lazy-creates and caches the accessor function.
 
         Args:
             instance: The instance that the descriptor is accessed from, or None
