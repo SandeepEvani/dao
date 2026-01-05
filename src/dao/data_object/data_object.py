@@ -1,5 +1,6 @@
 # data_object.py
 # represents a physical data object present in a datastore
+from typing import Optional
 
 from ..data_store import DataStore
 
@@ -11,7 +12,7 @@ class DataObject:
     _name = None
     _data_store = None
 
-    def __init__(self, name: str, data_store: DataStore):
+    def __init__(self, name: str, data_store: DataStore, identifier: Optional[str] = None):
         """Initializes the `Data Object` object.
 
         :param name: The unique identifier for a data object within a data store
@@ -20,6 +21,7 @@ class DataObject:
         """
         self.name = name
         self.data_store = data_store
+        self.identifier = identifier or name
 
         # Assigns data stores parameters
         for k, v in vars(data_store).items():
