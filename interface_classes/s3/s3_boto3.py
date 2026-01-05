@@ -3,7 +3,7 @@
 
 import boto3
 
-from dao.data_object import S3FileObject, S3DirectoryObject
+from dao.data_object import S3DirectoryObject, S3FileObject
 
 
 def s3_path_generator(*paths, s3_prefix="s3"):
@@ -73,7 +73,7 @@ class S3Boto3:
             print(f"Error reading file file: {e}")
             return False
 
-    def list_files(self, data_object: S3DirectoryObject, **kwargs):
+    def list_objects(self, data_object: S3DirectoryObject, **kwargs):
         """
         Lists files in the S3 directory
 

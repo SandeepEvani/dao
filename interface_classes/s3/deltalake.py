@@ -1,7 +1,6 @@
 # delta.py
 # includes writer and reader methods for delta tables
 
-import logging
 import re
 from functools import lru_cache
 
@@ -10,6 +9,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
 from dao import register
+from dao.data_object import S3DeltaObject
 
 
 class Delta:
@@ -24,12 +24,12 @@ class Delta:
             **kwargs: Additional properties for the delta class
         """
         self.bucket = bucket
-        self.prefix = prefix or ""
+        self.prefix = prefix
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def write_dataframe_to_delta(self, data, data_object, **delta_options) -> bool:
+    def write_dataframe_to_delta(self, data: DataFrame, data_object: S3DeltaObject, **delta_options) -> bool:
         """
         Creates a new Delta table in S3 with the required table properties
         Args:
@@ -40,11 +40,7 @@ class Delta:
         Returns:
         """
 
-        if "merge" in delta_options:
-            logging.warning("triggering merge operation")
-            return self.merge_delta_to_s3(data, data_object, **delta_options)
-
-        s3_path = self._s3_path_generator(self.bucket, self.prefix, data_object.prefix, data_object.source)
+        s3_path = self._s3_path_generator(self.bucket, self.prefix, data_object.key)
 
         net_delta_options = {**self.global_delta_options, **delta_options}
 

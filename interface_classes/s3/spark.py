@@ -1,8 +1,9 @@
 # spark.py
 # Contains code to perform data operations on s3 via spark
 
-import boto3
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
+
+from dao.data_object import S3TableObject
 
 
 def s3_path_generator(*paths, s3_prefix="s3a"):
@@ -20,14 +21,58 @@ class SparkS3:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def write_data(self, data: DataFrame, data_object, write_format: str = "csv", **kwargs):
+    def write_data(self, data: DataFrame, data_object: S3TableObject, format: str = "csv", spark_options=None) -> bool:
+        """
+        Writes data to S3 via Spark
+
+        :param data:
+        :param data_object:
+        :param format:
+        :param spark_options:
+        :return:
+        """
+
         s3_path = s3_path_generator(
             self.bucket,
             self.prefix,
-            data_object.identifier.upper(),
+            data_object.key,
         )
 
-        writer = data.write.option("header", "true").mode("overwrite")
-        getattr(writer, data_object.data_format, write_format)(s3_path)
+        writer = data.write
+
+        if spark_options and "mode" in spark_options:
+            # Preventing the mutation of the original spark_options dict
+            spark_options = spark_options.copy()
+            mode = spark_options.pop("mode")
+            writer = writer.mode(mode)
+
+            writer.options(**spark_options)
+
+        getattr(writer, format)(s3_path)
 
         return True
+
+    def read_data(self, data_object: S3TableObject, format: str = "csv", spark_options=None) -> DataFrame:
+        """
+        Read data from S3 via Spark
+
+        :param data_object:
+        :param format:
+        :param spark_options:
+        :return:
+        """
+
+        spark_session = SparkSession.getActiveSession()
+
+        s3_path = s3_path_generator(
+            self.bucket,
+            self.prefix,
+            data_object.key,
+        )
+
+        reader = spark_session.read
+
+        if spark_options:
+            reader = reader.options(**spark_options)
+
+        return getattr(reader, format)(s3_path)
