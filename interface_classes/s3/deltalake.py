@@ -12,10 +12,10 @@ from dao import register
 from dao.data_object import S3DeltaObject
 
 
-class Delta:
+class S3DeltaInterface:
     global_delta_options = {}
 
-    def __init__(self, bucket, prefix=None, **kwargs):
+    def __init__(self, bucket: str, prefix=None, **kwargs):
         """
         Initializes the delta class for DAO
         Args:

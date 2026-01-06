@@ -13,7 +13,7 @@ def s3_path_generator(*paths, s3_prefix="s3"):
     return s3_prefix + "://" + "/".join([prefix for prefix in paths if prefix and prefix.strip()])
 
 
-class S3Boto3:
+class S3Boto3Interface:
     def __init__(self, bucket: str):
         self.bucket = bucket
 

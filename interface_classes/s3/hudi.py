@@ -27,7 +27,7 @@ def s3_path_generator(*paths, s3_prefix="s3a"):
     return s3_prefix + "://" + "/".join([prefix for prefix in paths if prefix and prefix.strip()])
 
 
-class S3SparkHudi:
+class S3HudiInterface:
     """
     Manages Hudi table operations on AWS S3 using Apache Spark.
 

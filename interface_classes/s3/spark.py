@@ -13,8 +13,14 @@ def s3_path_generator(*paths, s3_prefix="s3a"):
     return s3_prefix + "://" + "/".join([prefix for prefix in paths if prefix and prefix.strip()])
 
 
-class SparkS3:
-    def __init__(self, bucket, prefix, **kwargs):
+class S3SparkInterface:
+    def __init__(self, bucket: str, prefix=None, **kwargs):
+        """
+
+        :param bucket:
+        :param prefix:
+        :param kwargs:
+        """
         self.bucket = bucket
         self.prefix = prefix
 
