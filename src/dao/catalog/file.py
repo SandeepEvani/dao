@@ -1,5 +1,6 @@
 # file.py
 # Contains file-based catalog DAO implementation
+from typing import Any, Dict
 
 from dao.catalog.base import BaseCatalog
 
@@ -12,6 +13,12 @@ class FileCatalog(BaseCatalog):
     standard data access operations like read, write, upsert, and delete
     specifically for file-based catalogs.
     """
+
+    def validate(self) -> bool:
+        pass
+
+    def get_data_object(self, fully_qualified_name: str) -> Dict[str, Any]:
+        pass
 
     def get_data_objects(self) -> list:
         """Retrieve a list of data objects available in the file catalog.
@@ -29,5 +36,3 @@ class FileCatalog(BaseCatalog):
             list: A list of data store names or identifiers.
         """
         # Implementation to list data stores
-
-    pass
