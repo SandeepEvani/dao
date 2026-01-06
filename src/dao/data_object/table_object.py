@@ -1,5 +1,8 @@
 # table_object.py
 # represents the table data object
+from typing import Optional
+
+from dao.data_store import DataStore
 
 from .data_object import DataObject
 
@@ -10,15 +13,11 @@ class TableObject(DataObject):
 
     def __init__(
         self,
-        name,
-        data_store,
-        columns=None,
-        prefix=None,
-        primary_keys=None,
-        partition_keys=None,
-        cluster_keys=None,
-        precombine_keys=None,
-        index_keys=None,
+        name: str,
+        data_store: DataStore,
+        schema: Optional[str] = None,
+        columns: Optional[str] = None,
+        primary_keys: Optional[str] = None,
         **kwargs,
     ):
         """Initializes the Data Store class.
@@ -26,24 +25,14 @@ class TableObject(DataObject):
         :param name: Identifier of the table object
         :param data_store: The Data Store the table belongs to
         :param columns: columns the table contains
-        :param prefix:
+        :param schema: schema the table contains
         :param primary_keys:
-        :param partition_keys:
-        :param cluster_keys:
-        :param precombine_keys:
-        :param index_keys:
-        :param kwargs:
         """
 
         super().__init__(name, data_store)
-        self.prefix = prefix
+        self.schema = schema
         self.columns = columns
         self.primary_keys = primary_keys
-        self.partition_keys = partition_keys
-        self.cluster_keys = cluster_keys
-        self.precombine_keys = precombine_keys
-        self.index_keys = index_keys
-
         for attribute, value in kwargs.items():
             setattr(self, attribute, value)
 
