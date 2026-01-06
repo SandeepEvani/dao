@@ -2,8 +2,8 @@
 # Contains all the collection of the s3 objects
 from typing import Optional
 
-from .data_object import DataObject
 from ..data_store import DataStore
+from .data_object import DataObject
 
 
 class S3DirectoryObject(DataObject):
@@ -74,8 +74,18 @@ class S3HudiObject(S3TableObject):
 
 
 class S3DeltaObject(S3TableObject):
-    def __init__(self, name: str, data_store: DataStore, identifier: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        data_store: DataStore,
+        identifier: Optional[str] = None,
+        partition_keys: Optional[str] = None,
+        cluster_keys: Optional[str] = None,
+    ):
         super().__init__(name, data_store, identifier)
+
+        self.partition_keys = partition_keys
+        self.cluster_keys = cluster_keys
 
 
 class S3IcebergObject(S3TableObject):
