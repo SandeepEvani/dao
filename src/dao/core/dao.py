@@ -3,7 +3,6 @@
 
 from dao.core.accessor import data_accessor
 from dao.data_object import DataObject
-from dao.data_store import DataStoreRegistry
 from dao.utils.singleton import singleton
 
 
@@ -15,17 +14,6 @@ class DataAccessObject:
     operations, abstracting the complexity of underlying data stores and
     providing a clean, consistent API for application code.
     """
-
-    def __init__(self, data_stores: dict):
-        """Initialize the Data Access Object with configured data stores.
-
-        Args:
-            data_stores: Dictionary of data store configurations where keys are
-                        data store names and values are their configurations.
-        """
-        # Register the data stores to the registry for common access
-        self.data_stores = data_stores
-        DataStoreRegistry.initialize(data_stores)
 
     @data_accessor
     def read(self, data_object: DataObject, **kwargs):
