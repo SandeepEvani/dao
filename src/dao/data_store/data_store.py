@@ -1,7 +1,28 @@
 # data_store.py
 # represents the data store
 
-from typing import Optional
+from importlib import import_module
+from typing import Any, Dict, NamedTuple, Optional
+
+
+class _DefaultInitializer(NamedTuple):
+    class_: type
+    args: dict
+
+    def initialize(self):
+        return self.class_(**self.args)
+
+
+class _LazyInitializer(NamedTuple):
+    module: str
+    class_: str
+    args: dict
+
+    def initialize(self):
+        interface_module = import_module(self.module)
+        interface_class = getattr(interface_module, self.class_)
+
+        return interface_class(**self.args)
 
 
 class DataStore:
@@ -21,11 +42,10 @@ class DataStore:
         :param properties: Any external properties for a data store if required
         """
         self.name = name
-
         self._primary_interface_class = None
-        self._primary_interface_object = None
-        self._secondary_interface_class = {}
-        self._secondary_interface_object = {}
+
+        self._interface_classes = {}
+        self._interface_objects = {}
 
         for attribute, value in properties.items():
             setattr(self, attribute, value)
@@ -40,43 +60,42 @@ class DataStore:
             raise ValueError("Attribute `name` is already set, cannot modify `name`")
         self._name = value
 
-    def set_primary_interface_class(self, class_) -> None:
+    def set_interface_class(self, *, class_: type, args: Optional[Dict[str, Any]] = None, primary=False) -> None:
         """Registers the primary interface class with the data store object The primary
         interface class/object is used when there are no other specified parameters.
 
+        :param args:
+        :param primary:
         :param class_: The class object which is used as the interface
         :return: None
         """
-        self._primary_interface_class = class_
+        args = args or {}
 
-    def set_primary_interface_object(self, obj):
-        """Registers the primary interface object with the data store object The primary
-        interface class/object is used when there are no other specified parameters.
+        if primary:
+            if self._primary_interface_class is not None:
+                raise RuntimeError("Primary interface class is already set, cannot modify")
+            self._primary_interface_class = class_.__name__
+        self._interface_classes[class_.__name__] = _DefaultInitializer(class_=class_, args=args)
 
-        :param obj: The object which is used as the primary interface.
-        :return: None
-        """
-
-        self._primary_interface_object = obj
-
-    def set_secondary_interface_class(self, class_) -> None:
+    def set_interface_class_lazy(
+        self, *, module: str, class_: str, args: Optional[Dict[str, Any]] = None, primary: Optional[bool] = False
+    ) -> None:
         """Registers the primary interface class with the data store object The primary
         interface class/object is used when there are no other specified parameters.
 
+        :param args:
+        :param primary:
+        :param module:
         :param class_: The class object which is used as the interface
         :return: None
         """
-        self._secondary_interface_class[class_.__name__] = class_
+        args = args or {}
 
-    def set_secondary_interface_object(self, obj):
-        """Registers the primary interface object with the data store object The primary
-        interface class/object is used when there are no other specified parameters.
-
-        :param obj: The object which is used as the primary interface
-        :return: None
-        """
-
-        self._secondary_interface_object[obj.__class__.__name__] = obj
+        if primary:
+            if self._primary_interface_class is not None:
+                raise RuntimeError("Primary interface class is already set, cannot modify")
+            self._primary_interface_class = class_
+        self._interface_classes[class_] = _LazyInitializer(module=module, class_=class_, args=args)
 
     def get_interface_object(self, class_: Optional[str] = None):
         """Retrieves the interface object based on the class name provided.
@@ -85,18 +104,16 @@ class DataStore:
         :returns Interface object associated to the provided `class_` parameter
         :raises KeyError when the associated class is not found
         """
-        if class_ is None or class_ == self._primary_interface_class.__name__:
-            return self._primary_interface_object
+        class_ = self._primary_interface_class if class_ is None else class_
 
-        elif class_ in self._secondary_interface_object:
-            return self._secondary_interface_object[class_]
+        if class_ in self._interface_objects:
+            return self._interface_objects[class_]
+
+        elif class_ in self._interface_classes:
+            initializer = self._interface_classes[class_]
+            interface_object = initializer.initialize()
+            self._interface_objects[class_] = interface_object
+            return interface_object
 
         else:
             raise KeyError(f"No interface object linked to {class_} class found")
-
-    def get_interface_objects(self):
-        """Returns a list of interface objects which are previously registered.
-
-        :return: list: interface objects
-        """
-        return [self._primary_interface_object] + list(self._secondary_interface_object.values())
