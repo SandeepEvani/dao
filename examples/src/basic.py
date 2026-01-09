@@ -1,48 +1,16 @@
 from dao.core.dao import DataAccessObject
 from dao.data_object import DataObject
-from dao.data_store import DataStoreFactory
+from dao.data_store import DataStore
+from data_classes.delta import Delta
+from data_classes.s3 import S3
 
-dao = DataAccessObject(
-    {
-        "bronze": {
-            "interface_class": "S3SparkInterface",
-            "interface_class_location": "interface_classes.s3.spark",
-            "default_configs": {"bucket": "bronze-layer"},
-            "secondary_interfaces": [
-                {
-                    "interface_class": "S3Boto3Interface",
-                    "interface_class_location": "interface_classes.s3.s3_boto3",
-                    "default_configs": {"bucket": "bronze-layer"},
-                },
-            ],
-        },
-        "silver": {
-            "interface_class": "S3DeltaInterface",
-            "interface_class_location": "interface_classes.s3.deltalake",
-            "default_configs": {"bucket": "silver-layer"},
-            "secondary_interfaces": [
-                {
-                    "interface_class": "S3HudiInterface",
-                    "interface_class_location": "interface_classes.s3.hudi",
-                    "default_configs": {"bucket": "silver-layer"},
-                },
-            ],
-        },
-        "gold": {
-            "interface_class": "S3DeltaInterface",
-            "interface_class_location": "interface_classes.s3.deltalake",
-            "default_configs": {"bucket": "gold-layer"},
-        },
-        "warehouse": {
-            "interface_class": "RedshiftSparkInterface",
-            "interface_class_location": "interface_classes.redshift.spark",
-            "default_configs": {},
-        },
-    }
-)
+bronze_data_store = DataStore("bronze")
 
+bronze_data_store.set_interface_class(class_=S3, primary=True)
+bronze_data_store.set_interface_class(class_=Delta)
 
-raw = DataStoreFactory.get_data_store("bronze")
-customer_table_object = DataObject("customer", raw)
+customer_object = DataObject("custom_store", bronze_data_store)
 
-customer_df = dao.read(customer_table_object)
+dao = DataAccessObject()
+
+dao.write(data_object=customer_object, data="", arg1=1, dao_interface_class="Delta")
