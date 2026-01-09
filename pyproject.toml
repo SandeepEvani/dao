@@ -17,6 +17,9 @@ build-backend = "uv_build"
 [tool.ruff]
 line-length = 120
 
+[tool.isort]
+profile = "black"
+
 [dependency-groups]
 dev = [
     "black>=25.9.0",
