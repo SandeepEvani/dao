@@ -12,7 +12,7 @@ from makefun import create_function
 
 from dao.core.router import Router
 from dao.core.signature import SignatureFactory
-from dao.data_store import DataStoreFactory, DataStoreRegistry
+from dao.data_store import DataStore
 
 
 class DataAccessor:
@@ -66,7 +66,6 @@ class DataAccessor:
 
         self.signature = signature(function)
         self.signature_factory = SignatureFactory()
-        self.data_store_factory = DataStoreFactory()
         self.router = Router(action=self.action)
 
     def __get__(self, instance, owner):
@@ -159,7 +158,7 @@ class DataAccessor:
         self._initialize_interface_if_needed(data_store, data_class)
 
         # Route to the appropriate method
-        method = self._get_routed_method(argument_signature, data_store, conf_args)
+        method = self._get_routed_method(argument_signature, data_store.name, conf_args)
 
         # Execute and return the result
         return method(**method_args)
@@ -176,18 +175,18 @@ class DataAccessor:
                 data_store_name (str): Name of the data store.
                 data_class (str): Optional specific interface class name.
         """
-        # Get the data_object parameter (may be named differently)
+        # Get the data_object parameter (maybe named differently)
         data_object = method_args.get(self.data_object)
         if not data_object:
             raise ValueError(f"data_object parameter '{self.data_object}' not found in method arguments")
 
         # Extract data store information from the data object
-        data_store = data_object.data_store.name
+        data_store = data_object.data_store
         data_class = conf_args.get("dao_interface_class")
 
         return data_store, data_class
 
-    def _initialize_interface_if_needed(self, data_store: str, data_class: str) -> None:
+    def _initialize_interface_if_needed(self, data_store: DataStore, data_class: str) -> None:
         """Initialize interface and routes if not already initialized.
 
         Args:
@@ -199,12 +198,10 @@ class DataAccessor:
         if cache_key in self._initialized:
             return
 
-        # Get the data store configuration and initialize the interface
-        data_store_config = DataStoreRegistry.get(data_store)
-        interface_object = self.data_store_factory.initialize_data_class(data_store_config, data_store, data_class)
+        interface_object = data_store.get_interface_object(data_class)
 
         # Create routes from the interface object
-        self.router.create_routes_from_interface_object(data_store, interface_object)
+        self.router.create_routes_from_interface_object(data_store.name, interface_object)
 
         # Mark as initialized
         self._initialized.add(cache_key)
