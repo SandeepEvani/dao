@@ -33,7 +33,6 @@ custom_data_store = DataObject("custom_store", bronze_data_store)
 
 dao = DataAccessObject()
 
-
 dao.write(data_object=custom_data_store, data="", arg1=1)
 
 # dao.write()
