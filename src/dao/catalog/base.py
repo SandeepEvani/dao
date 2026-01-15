@@ -3,7 +3,9 @@
 
 from abc import ABC, abstractmethod
 from logging import getLogger
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+
+from dao.data_object import DataObject
 
 logger = getLogger(__name__)
 
@@ -54,11 +56,11 @@ class BaseCatalog(ABC):
             self.validate()
 
     @abstractmethod
-    def get_data_stores(self) -> List[str]:
-        """Retrieve all available data store names.
+    def get_data_store_configs(self) -> Dict[str, Any]:
+        """Retrieve all available data stores.
 
         Returns:
-            A list of data store identifiers/names.
+            The data store configurations/metadata as a dictionary.
 
         Raises:
             CatalogException: If unable to retrieve data stores.
@@ -66,24 +68,20 @@ class BaseCatalog(ABC):
         raise NotImplementedError("Subclasses must implement get_data_stores method.")
 
     @abstractmethod
-    def get_data_objects(self, data_store: Optional[str] = None) -> List[str]:
-        """Retrieve all data object names, optionally filtered by data store.
-
-        Args:
-            data_store: Optional filter for specific data store. If None, returns all objects.
+    def get_data_object_configs(self) -> Dict[str, Any]:
+        """Retrieve all available data stores.
 
         Returns:
-            A list of data object identifiers/names.
+            The data store configurations/metadata as a dictionary.
 
         Raises:
-            DataStoreNotFoundError: If specified data_store does not exist.
-            CatalogException: If unable to retrieve data objects.
+            CatalogException: If unable to retrieve data stores.
         """
-        raise NotImplementedError("Subclasses must implement get_data_objects method.")
+        raise NotImplementedError("Subclasses must implement get_data_stores method.")
 
     @abstractmethod
-    def get_data_object(self, fully_qualified_name: str) -> Dict[str, Any]:
-        """Retrieve a specific data object configuration.
+    def get_data_object(self, fully_qualified_name: str) -> DataObject:
+        """Retrieve a specific data object from a specific data store.
 
         Args:
             fully_qualified_name: Format should be 'data_store.object_name'
@@ -99,6 +97,22 @@ class BaseCatalog(ABC):
         raise NotImplementedError("Subclasses must implement get_data_object method.")
 
     @abstractmethod
+    def get_data_objects(self, data_store: Optional[str] = None) -> Dict[str, Any]:
+        """Retrieve all data object names, optionally filtered by data store.
+
+        Args:
+            data_store: Optional filter for specific data store. If None, returns all objects.
+
+        Returns:
+            A list of data object configurations as a dictionary.
+
+        Raises:
+            DataStoreNotFoundError: If specified data_store does not exist.
+            CatalogException: If unable to retrieve data objects.
+        """
+        raise NotImplementedError("Subclasses must implement get_data_objects method.")
+
+    @abstractmethod
     def validate(self) -> bool:
         """Validate the catalog structure and contents.
 
@@ -109,17 +123,6 @@ class BaseCatalog(ABC):
             InvalidCatalogFormatError: If catalog structure is invalid.
         """
         raise NotImplementedError("Subclasses must implement validate method.")
-
-    def check_data_store_exists(self, data_store: str) -> bool:
-        """Check if a data store exists in the catalog.
-
-        Args:
-            data_store: Name of the data store to check.
-
-        Returns:
-            True if data store exists, False otherwise.
-        """
-        return data_store in self.get_data_stores()
 
     def check_data_object_exists(self, fully_qualified_name: str) -> bool:
         """Check if a data object exists in the catalog.
@@ -165,26 +168,3 @@ class BaseCatalog(ABC):
             )
 
         return tuple(parts)
-
-    def get_object_metadata(self, fully_qualified_name: str) -> Dict[str, Any]:
-        """Retrieve complete metadata for a data object.
-
-        Args:
-            fully_qualified_name: Fully qualified name in format 'data_store.object_name'
-
-        Returns:
-            Dictionary containing object metadata.
-
-        Raises:
-            ValueError: If format is invalid.
-            DataStoreNotFoundError: If data store does not exist.
-            DataObjectNotFoundError: If data object does not exist.
-        """
-        data_store, object_name = self._parse_fully_qualified_name(fully_qualified_name)
-
-        if not self.check_data_store_exists(data_store):
-            raise DataStoreNotFoundError(
-                f"Data store '{data_store}' not found. Available data stores: {self.get_data_stores()}"
-            )
-
-        return self.get_data_object(fully_qualified_name)
