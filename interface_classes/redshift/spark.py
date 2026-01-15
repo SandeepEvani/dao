@@ -51,8 +51,21 @@ class RedshiftSparkInterface:
     def read_data(self, data_object: TableObject, **options) -> DataFrame:
         """Read data from a Redshift table into a Spark DataFrame.
 
-        :param data_object: The Redshift table to read from.
-        :return: A Spark DataFrame containing the data from the Redshift table.
+        Args:
+            data_object (TableObject): Table metadata object containing at least an `identifier` (e.g., "schema.table").
+            **options: Optional backend-specific options forwarded to the reader.
+
+        Returns:
+            pyspark.sql.DataFrame: Spark DataFrame loaded from the Redshift table.
+
+        Raises:
+            RuntimeError: If no active Spark session is available.
+
+        Notes:
+            - Uses JDBC driver configured via `jdbc_url` and Redshift-specific options
+              such as `s3_temp_dir` and `iam_role_arn`.
+            - The returned DataFrame is the raw table contents; further transformations
+              should be applied by caller code.
         """
 
         spark_session = SparkSession.getActiveSession()
