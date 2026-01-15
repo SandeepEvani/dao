@@ -13,12 +13,11 @@ class DataObject:
     _name = None
     _data_store = None
 
-    def __init__(self, name: str, data_store: DataStore, identifier: Optional[str] = None):
+    def __init__(self, name: str, data_store: DataStore, identifier: Optional[str] = None, **properties):
         """Initializes the `Data Object` object.
 
         :param name: The unique identifier for a data object within a data store
-        :param data_store: The actual Data Store object to which the data object belongs
-            to
+        :param data_store: The actual Data Store object to which the data object belongs to
         """
         self.name = name
         self.data_store = data_store
@@ -28,6 +27,9 @@ class DataObject:
         for k, v in vars(data_store).items():
             if not k.startswith("_"):
                 setattr(self, k, v)
+
+        for k, v in properties.items():
+            setattr(self, k, v)
 
     @property
     def name(self):
