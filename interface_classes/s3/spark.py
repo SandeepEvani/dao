@@ -60,12 +60,19 @@ class S3SparkInterface:
 
     def read_data(self, data_object: S3TableObject, format: str = "csv", spark_options=None) -> DataFrame:
         """
-        Read data from S3 via Spark
+        Read data from S3 into a Spark DataFrame.
 
-        :param data_object:
-        :param format:
-        :param spark_options:
-        :return:
+        Args:
+            data_object (S3TableObject): Metadata object with `key` (path) under bucket/prefix.
+            format (str, optional): File format to read (e.g., "csv", "parquet", "json"). Defaults to "csv".
+            spark_options (dict, optional): Options passed to spark.read.options(...).
+
+        Returns:
+            pyspark.sql.DataFrame: DataFrame loaded from the S3 path.
+
+        Notes:
+            - Constructs an S3 path from `bucket`, `prefix`, and `data_object.key`.
+            - `spark_options` are passed through to Spark's reader; the original dict is not mutated.
         """
 
         spark_session = SparkSession.getActiveSession()

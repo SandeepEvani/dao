@@ -46,9 +46,22 @@ class S3Boto3Interface:
         return response
 
     def read_data(self, data_object: S3FileObject, **kwargs):
-        """Read a file from an S3 bucket
+        """Read an object from S3 and return a streaming body.
 
-        :param data_object: File Object to read from.
+        Args:
+            data_object (S3FileObject): File metadata object with `key` attribute identifying the object.
+            **kwargs: Optional parameters:
+                - version_id (str, optional): Specific object version to fetch.
+                - range_bytes (str|tuple, optional): Byte range to read (e.g., "0-1023" or (0,1023)).
+
+        Returns:
+            botocore.response.StreamingBody | bool:
+                - StreamingBody: file-like stream of object contents on success.
+                - False: on error (preserves existing behavior).
+
+        Notes:
+            - Consumers should call `.read()` on the returned StreamingBody or stream it.
+            - This function logs exceptions and returns False on failure to keep legacy behavior.
         """
         try:
             # Extract parameters from data_object
