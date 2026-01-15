@@ -22,16 +22,21 @@ class DataStoreFactory:
         cls._store_configs.update(data_store_configs)
 
     @classmethod
+    def _create_data_store_instance(cls, data_store: str) -> DataStore:
+        """Creates the data store instance."""
+
+        data_store_config = cls._store_configs.get(data_store)
+        data_store_instance = DataStore(data_store, **(data_store_config.get("properties", {})))
+        return data_store_instance
+
+    @classmethod
     def _initialize_data_store(cls, data_store: str):
         """Initializes the data store object."""
 
-        if not cls.check_data_store_exists(data_store):
-            raise KeyError(f"Data store '{data_store}' not found.")
+        data_store_instance = cls._create_data_store_instance(data_store)
 
         data_store_config = cls._store_configs.get(data_store)
-
-        data_store = DataStore(data_store_config, **(data_store_config.get("properties", {})))
-        data_store.set_interface_class_lazy(
+        data_store_instance.set_interface_class_lazy(
             module=data_store_config["module"],
             class_=data_store_config["class"],
             args=data_store_config.get("args"),
@@ -39,14 +44,14 @@ class DataStoreFactory:
         )
 
         for interface in data_store_config.get("additional_interfaces", []):
-            data_store.set_interface_class_lazy(
+            data_store_instance.set_interface_class_lazy(
                 module=interface["module"],
                 class_=interface["class"],
                 args=interface.get("args"),
                 primary=False,
             )
 
-        return data_store
+        return data_store_instance
 
     def validate(self):
         """ """
