@@ -34,14 +34,14 @@ File systems, Object storages or Databases — A logical home for your data
 ### Visual: How They Connect
 
 
-![data_store.png](examples/docs/img.png)
+![data_store.png](examples/docs/data_store_py_relations.png)
 
 In this diagram:
 - The **large rectangles** = DataStore (logical storage layers)
 - The **small rectangles inside** = DataObjects (datasets within each store)
 - Each DataObject belongs to exactly one DataStore
 
-![py_objects](examples/docs/data_store_py_relations.png)
+![py_objects](examples/docs/data_stores.png)
 
 In the above diagram, we can see how python objects(Virtual) relate to the Data Store and Data Objects (Real):
 - A data store is represented by a DataStore class object
