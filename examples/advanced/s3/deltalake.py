@@ -141,7 +141,6 @@ class S3DeltaInterface:
             data_object:
 
         Returns: bool
-
         """
 
         spark_session = data.sparkSession or SparkSession.getActiveSession()

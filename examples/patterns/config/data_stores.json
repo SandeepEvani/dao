@@ -1,0 +1,46 @@
+{
+  "bronze": {
+    "class": "MockStorageInterface",
+    "module": "examples.shared.mock_interfaces",
+    "args": {
+      "bucket": "ecommerce-bronze",
+      "region": "us-east-1"
+    },
+    "properties": {
+      "layer": "raw",
+      "description": "Raw data landing zone"
+    },
+    "additional_interfaces": [
+      {
+        "class": "MockSparkInterface",
+        "module": "examples.shared.mock_interfaces",
+        "args": {
+          "bucket": "ecommerce-bronze"
+        }
+      }
+    ]
+  },
+  "silver": {
+    "class": "MockSparkInterface",
+    "module": "examples.shared.mock_interfaces",
+    "args": {
+      "bucket": "ecommerce-silver"
+    },
+    "properties": {
+      "layer": "cleansed",
+      "description": "Cleansed and validated data"
+    }
+  },
+  "gold": {
+    "class": "MockDeltaInterface",
+    "module": "examples.shared.mock_interfaces",
+    "args": {
+      "bucket": "ecommerce-gold",
+      "catalog": "analytics"
+    },
+    "properties": {
+      "layer": "curated",
+      "description": "Business-ready aggregated data"
+    }
+  }
+}

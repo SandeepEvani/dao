@@ -1,0 +1,32 @@
+{
+  "bronze": {
+    "customers_raw": {
+      "key": "customers/2025-01-15.csv",
+      "description": "Raw customer profiles from transactional database"
+    },
+    "orders_raw": {
+      "key": "orders/2025-01-15.json",
+      "description": "Order details from order management system"
+    }
+  },
+  "silver": {
+    "customers_clean": {
+      "path": "customers_clean",
+      "description": "Deduplicated and validated customer records"
+    },
+    "orders_clean": {
+      "path": "orders_clean",
+      "description": "Orders with validated references and corrected types"
+    }
+  },
+  "gold": {
+    "customer_360": {
+      "table": "customer_360",
+      "description": "Comprehensive customer view with lifetime metrics"
+    },
+    "daily_sales": {
+      "table": "daily_sales",
+      "description": "Aggregated daily sales by product and region"
+    }
+  }
+}
