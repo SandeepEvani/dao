@@ -1,13 +1,20 @@
 [project]
 name = "dao"
-version = "0.1.0"
-description = "A Convience Data Access Object"
+version = "1.0.0"
+description = "A Convenience Data Access Object"
 authors = [
     { name = "Sandeep Evani", email = "sandeepevani01@gmail.com" }
 ]
 requires-python = ">=3.9"
 dependencies = [
     "pandas>=2.2.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "isort>=5.12",
 ]
 
 [project.scripts]
