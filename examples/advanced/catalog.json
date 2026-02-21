@@ -8,5 +8,11 @@
       "primary_keys": "sale_id",
       "partition_keys": "year,month"
     }
+  },
+  "warehouse": {
+    "dim_customer": {
+      "primary_keys": "customer_id"
+    }
   }
 }
+

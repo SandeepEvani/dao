@@ -1,0 +1,10 @@
+{
+  "data_stores": {
+    "warehouse": {
+      "interface_class": "Redshift",
+      "interface_class_location": "data_classes.redshift",
+      "default_configs": {}
+    }
+  }
+}
+

@@ -1,0 +1,12 @@
+{
+  "warehouse": {
+    "customers": {
+      "primary_keys": "customer_id"
+    },
+    "orders": {
+      "primary_keys": "order_id",
+      "partition_keys": "year,month"
+    }
+  }
+}
+
