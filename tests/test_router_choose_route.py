@@ -3,12 +3,12 @@
 
 import typing
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Union
+from typing import Dict, FrozenSet, List, Literal, Optional, Set, Tuple, Union
 
 import pytest
 
 from dao.core.router import Router
-from dao.registrar import register
+from dao.decorators import register
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -427,3 +427,84 @@ class TestTypeCheckingViaRouter:
 
         route = _route_for(Iface(), {"lookup": {"a": [1, 2]}})
         assert route["method_name"] == "read_nested_dict"
+
+    # ------------------------------------------------------------------
+    # 2.10  Literal types
+    # ------------------------------------------------------------------
+
+    def test_literal_str_exact_match(self):
+        """Exact Literal value should match."""
+
+        class Iface:
+            def read_parquet(self, path: str, format: Literal["parquet"]) -> None: ...
+
+        route = _route_for(Iface(), {"path": "s3://bucket/file", "format": "parquet"})
+        assert route["method_name"] == "read_parquet"
+
+    def test_literal_str_wrong_value_raises(self):
+        """A string that is not in the Literal should not match."""
+
+        class Iface:
+            def read_parquet(self, path: str, format: Literal["parquet"]) -> None: ...
+
+        router = _router_for(Iface())
+        with pytest.raises(RuntimeError):
+            router.choose_route({"path": "s3://bucket/file", "format": "csv"}, "s3", {})
+
+    def test_literal_int_match(self):
+        """Literal works with integer values too."""
+
+        class Iface:
+            def read_version(self, path: str, version: Literal[1]) -> None: ...
+
+        route = _route_for(Iface(), {"path": "s3://bucket", "version": 1})
+        assert route["method_name"] == "read_version"
+
+    def test_literal_int_wrong_value_raises(self):
+        class Iface:
+            def read_version(self, path: str, version: Literal[1]) -> None: ...
+
+        router = _router_for(Iface())
+        with pytest.raises(RuntimeError):
+            router.choose_route({"path": "s3://bucket", "version": 2}, "s3", {})
+
+    def test_literal_multi_value_first(self):
+        """Literal with multiple allowed values accepts any of them."""
+
+        class Iface:
+            def read_fmt(self, path: str, format: Literal["parquet", "csv", "json"]) -> None: ...
+
+        route = _route_for(Iface(), {"path": "s3://bucket", "format": "parquet"})
+        assert route["method_name"] == "read_fmt"
+
+    def test_literal_multi_value_last(self):
+        class Iface:
+            def read_fmt(self, path: str, format: Literal["parquet", "csv", "json"]) -> None: ...
+
+        route = _route_for(Iface(), {"path": "s3://bucket", "format": "json"})
+        assert route["method_name"] == "read_fmt"
+
+    def test_literal_multi_value_not_in_set_raises(self):
+        class Iface:
+            def read_fmt(self, path: str, format: Literal["parquet", "csv", "json"]) -> None: ...
+
+        router = _router_for(Iface())
+        with pytest.raises(RuntimeError):
+            router.choose_route({"path": "s3://bucket", "format": "avro"}, "s3", {})
+
+    def test_literal_disambiguates_overloaded_methods(self):
+        """Two methods with the same param name but different Literal values
+        should dispatch to the correct one based on the supplied value."""
+
+        class Iface:
+            def read_parquet(self, path: str, format: Literal["parquet"]) -> None: ...
+            def read_csv(self, path: str, format: Literal["csv"]) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+
+        route = router.choose_route({"path": "s3://bucket", "format": "parquet"}, "s3", {})
+        assert route["method_name"] == "read_parquet"
+
+        route = router.choose_route({"path": "s3://bucket", "format": "csv"}, "s3", {})
+        assert route["method_name"] == "read_csv"
