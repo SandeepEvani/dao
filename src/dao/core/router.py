@@ -4,7 +4,7 @@
 from inspect import Parameter, getmembers, ismethod
 from typing import Any, Dict, List
 
-from nested_type_checker import is_object_of_type
+from typeguard import CollectionCheckStrategy, TypeCheckError, check_type
 
 from dao.core.signature import Signature, SignatureFactory
 
@@ -102,10 +102,7 @@ class Router:
             if method_name.startswith(self.action):
                 predicated_methods.append(method)
             # Check if the method is registered with matching action
-            elif (
-                getattr(method, "__dao_register__", False) is True
-                and getattr(method, "__dao_register_params__") == self.action
-            ):
+            elif getattr(method, "__dao_register_action__", None) == self.action:
                 predicated_methods.append(method)
 
         return predicated_methods
@@ -134,7 +131,7 @@ class Router:
             raise RuntimeError("No methods available for the specified data store and action")
 
         for route in search_space:
-            if self._is_compatible_route(route["signature"], args):
+            if self._is_compatible_route(route, args) and self._matches_conditions(route, args):
                 return route
 
         raise RuntimeError(f"No compatible method found for action '{self.action}'")
@@ -202,6 +199,7 @@ class Router:
                     "signature": signature,
                     "length_non_var_args": signature.len_non_var_args,
                     "length_all_args": signature.len_all_args,
+                    "when": getattr(method, "__dao_when__", {}),
                 }
                 routes.append(route_entry)
 
@@ -229,36 +227,42 @@ class Router:
             )
         )
 
-    def _is_compatible_route(self, signature: Signature, args) -> bool:
+    @staticmethod
+    def _is_compatible_route(route: Dict[str, Any], args: Dict[str, Any]) -> bool:
         """Check if these arguments are compatible with a target method signature.
 
-        Performs two checks:
-        1. Structural: All required parameters are present
-        2. Type: Provided types match target type annotations
+        @when condition keys that are absent from the method's declared parameters
+        are pure routing hints — they must be excluded from structural and type
+        checks so they don't inflate the argument count or cause spurious mismatches.
 
         Args:
-            target: The target method signature to check against.
+            route: The full route dict (contains signature and when conditions).
+            args: The arguments provided in the DAO call.
 
         Returns:
             bool: True if arguments are compatible with the method.
-
-        Raises:
-            TypeError: If target is not a MethodSignature.
         """
+        signature = route["signature"]
+
+        # Exclude @when keys that are not declared on the method — they are
+        # routing hints only and must not affect structural or type matching.
+        hint_only_keys = set(route.get("when", {}).keys()) - set(signature.parameters.keys())
+        effective_args = {k: v for k, v in args.items() if k not in hint_only_keys}
 
         # Check structural compatibility
-        if not self._check_structure(signature, args):
+        if not Router._check_structure(signature, effective_args):
             return False
 
         # Check type compatibility
-        return self._check_types(signature, args)
+        return Router._check_types(signature, effective_args)
 
     @staticmethod
-    def _check_structure(signature: Signature, args) -> bool:
+    def _check_structure(signature: Signature, args: Dict[str, Any]) -> bool:
         """Verify that all required parameters are present.
 
         Args:
-            target: The target method signature.
+            signature: The target method signature.
+            args: The arguments provided in the DAO call.
 
         Returns:
             bool: True if all required parameters are provided.
@@ -271,20 +275,49 @@ class Router:
         return set(signature.non_var_args).issubset(set(args))
 
     @staticmethod
-    def _check_types(signature: Signature, args) -> bool:
+    def _check_types(signature: Signature, args: Dict[str, Any]) -> bool:
         """Verify that provided argument types match target type annotations.
 
+        Uses typeguard with ALL_ITEMS collection strategy so every element in
+        a collection is checked — not just the first — giving deterministic
+        results even with inheritance hierarchies.
+
         Args:
-            target: The target method signature.
+            signature: The target method signature.
+            args: The arguments provided in the DAO call.
 
         Returns:
             bool: True if all types are compatible.
         """
         for param_name, target_param in signature.parameters.items():
-            # Skip parameters without type annotations
             if target_param.annotation == Parameter.empty:
                 continue
+            try:
+                check_type(
+                    args[param_name],
+                    target_param.annotation,
+                    collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+                )
+            except TypeCheckError:
+                return False
+        return True
 
-            if not is_object_of_type(args[param_name], target_param.annotation):
+    @staticmethod
+    def _matches_conditions(route: Dict[str, Any], args) -> bool:
+        """Check if provided argument values satisfy all ``@when`` conditions.
+
+        When a method is decorated with ``@when({"key": value})``, the router
+        only selects it if every condition is met by the caller's arguments.
+        Methods with no ``@when`` decorator always pass this check.
+
+        Args:
+            route: The route dictionary containing the ``'when'`` criteria.
+            args: The arguments provided in the DAO call.
+
+        Returns:
+            bool: True if all conditions are satisfied (or none were declared).
+        """
+        for param_name, expected_value in route.get("when", {}).items():
+            if args.get(param_name) != expected_value:
                 return False
         return True
