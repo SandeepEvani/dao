@@ -3,14 +3,11 @@
 
 import inspect
 from itertools import chain, combinations
+from typing import Any, Callable
 
-from dao.utils.singleton import singleton
-
-from .argument_signature import ArgumentSignature
-from .method_signatures import MethodSignature
+from .signature import Signature
 
 
-@singleton
 class SignatureFactory:
     """Factory for creating method and argument signatures at runtime.
 
@@ -19,9 +16,7 @@ class SignatureFactory:
     from provided DAO arguments.
     """
 
-    _instance = None
-
-    def create_method_signature(self, method):
+    def create_method_signatures(self, function: Callable[[Any], Any]) -> list[Signature]:
         """Create all valid method signatures for a callable.
 
         Generates all possible signature combinations by including/excluding
@@ -29,7 +24,7 @@ class SignatureFactory:
         calls with fewer arguments.
 
         Args:
-            method: A callable (method/function) from an interface class.
+            function: A callable (method/function) from an interface class.
 
         Returns:
             list[MethodSignature]: All valid parameter combinations for the method.
@@ -39,25 +34,9 @@ class SignatureFactory:
             - Signature with just `path` (columns excluded)
             - Signature with both `path` and `columns` (both included)
         """
-        method_signature = inspect.signature(method)
+        method_signature = inspect.signature(function)
         possible_signatures = self._get_all_combinations(method_signature)
-        return [MethodSignature(sig) for sig in possible_signatures]
-
-    def create_argument_signature(self, args, method_signature):
-        """Create argument signature from provided DAO arguments.
-
-        Args:
-            args: Dictionary mapping argument names to values (from DAO call).
-            method_signature: The expected method signature (from interface).
-
-        Returns:
-            ArgumentSignature: Analysis of provided arguments with type annotations.
-        """
-        parameters = [
-            self._create_parameter(arg_name, arg_value, arg_name in method_signature.parameters)
-            for arg_name, arg_value in args.items()
-        ]
-        return ArgumentSignature(inspect.Signature(parameters))
+        return [Signature(sig) for sig in possible_signatures]
 
     @staticmethod
     def _create_parameter(name: str, value, is_defined_in_signature: bool) -> inspect.Parameter:
