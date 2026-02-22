@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dao.core.router import Router
-from dao.registrar import register
+from dao.decorators import register
 
 # ---------------------------------------------------------------------------
 # Helpers – lightweight interface classes used across tests

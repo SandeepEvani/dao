@@ -1,8 +1,4 @@
 from dao.core import DataAccessObject
-from dao.registrar import register
+from dao.decorators import register, when
 
-__all__ = ["DataAccessObject", "register"]
-
-
-def hello() -> str:
-    return "Hello from dao!"
+__all__ = ["DataAccessObject", "register", "when"]
