@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import inspect
+from inspect import Parameter
+from types import MappingProxyType
 
 from .parameter_analyzer import ParameterAnalyzer
 
@@ -22,7 +24,7 @@ class Signature:
         Args:
             signature: The signature object from inspect.signature() or inspect.Signature()
         """
-        self.signature = signature
+        self._signature = signature
         self.metadata = ParameterAnalyzer.analyze(signature)
 
     @property
@@ -50,5 +52,10 @@ class Signature:
         """Non-variadic parameter count."""
         return self.metadata.len_non_var_args
 
+    @property
+    def parameters(self) -> MappingProxyType[str, Parameter]:
+        """Return the parameters of the signature as a dictionary."""
+        return self._signature.parameters
+
     def __repr__(self) -> str:
-        return self.signature.__repr__()
+        return self._signature.__repr__()
