@@ -11,7 +11,6 @@ from typing import Callable, Optional
 from makefun import create_function
 
 from dao.core.router import Router
-from dao.core.signature import SignatureFactory
 from dao.data_store import DataStore
 
 
@@ -65,7 +64,6 @@ class DataAccessor:
         self.action = self.name or function.__name__
 
         self.signature = signature(function)
-        self.signature_factory = SignatureFactory()
         self.router = Router(action=self.action)
 
     def __get__(self, instance, owner):
@@ -148,9 +146,6 @@ class DataAccessor:
         # Separate configuration arguments from method arguments
         method_args, conf_args = self.segregate_args(provided_args)
 
-        # Create argument signature for intelligent routing
-        argument_signature = self.signature_factory.create_argument_signature(method_args, self.signature)
-
         # Extract data store information
         data_store, data_class = self._extract_data_store_info(method_args, conf_args)
 
@@ -158,7 +153,7 @@ class DataAccessor:
         self._initialize_interface_if_needed(data_store, data_class)
 
         # Route to the appropriate method
-        method = self._get_routed_method(argument_signature, data_store.name, conf_args)
+        method = self._get_routed_method(method_args.copy(), data_store.name, conf_args)
 
         # Execute and return the result
         return method(**method_args)
