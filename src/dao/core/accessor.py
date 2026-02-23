@@ -11,7 +11,6 @@ from typing import Callable, Optional
 from makefun import create_function
 
 from dao.core.router import Router
-from dao.core.signature import SignatureFactory
 from dao.data_store import DataStore
 
 
@@ -65,7 +64,6 @@ class DataAccessor:
         self.action = self.name or function.__name__
 
         self.signature = signature(function)
-        self.signature_factory = SignatureFactory()
         self.router = Router(action=self.action)
 
     def __get__(self, instance, owner):
@@ -148,9 +146,6 @@ class DataAccessor:
         # Separate configuration arguments from method arguments
         method_args, conf_args = self.segregate_args(provided_args)
 
-        # Create argument signature for intelligent routing
-        argument_signature = self.signature_factory.create_argument_signature(method_args, self.signature)
-
         # Extract data store information
         data_store, data_class = self._extract_data_store_info(method_args, conf_args)
 
@@ -158,10 +153,17 @@ class DataAccessor:
         self._initialize_interface_if_needed(data_store, data_class)
 
         # Route to the appropriate method
-        method = self._get_routed_method(argument_signature, data_store.name, conf_args)
+        route = self._get_routed_method(method_args.copy(), data_store.name, conf_args)
+
+        # Strip @when routing-hint keys that the method does not declare as parameters.
+        # If the method does declare the key (with or without a default), pass it through
+        # as normal — only pure routing hints that are absent from the signature are dropped.
+        method_params = set(signature(route["method"]).parameters.keys())
+        routing_hints = set(route.get("when", {}).keys()) - method_params
+        call_args = {k: v for k, v in method_args.items() if k not in routing_hints}
 
         # Execute and return the result
-        return method(**method_args)
+        return route["method"](**call_args)
 
     def _extract_data_store_info(self, method_args: dict, conf_args: dict) -> tuple:
         """Extract data store name and class from method arguments.
@@ -206,8 +208,8 @@ class DataAccessor:
         # Mark as initialized
         self._initialized.add(cache_key)
 
-    def _get_routed_method(self, argument_signature, data_store: str, conf_args: dict) -> Callable:
-        """Get the appropriate method based on routing logic.
+    def _get_routed_method(self, argument_signature, data_store: str, conf_args: dict) -> dict:
+        """Get the appropriate route based on routing logic.
 
         Args:
             argument_signature: Signature of the provided arguments.
@@ -215,11 +217,9 @@ class DataAccessor:
             conf_args: Configuration arguments.
 
         Returns:
-            Callable: The routed method to execute.
+            dict: The matched route, including the method and its @when conditions.
         """
-        # Use router to find the best matching method
-        route = self.router.choose_route(argument_signature, data_store, conf_args)
-        return route["method"]
+        return self.router.choose_route(argument_signature, data_store, conf_args)
 
     @staticmethod
     def segregate_args(args, segregation_prefix="dao_"):

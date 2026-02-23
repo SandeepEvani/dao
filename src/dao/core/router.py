@@ -1,10 +1,12 @@
 # router.py
 # Routes data access operations to appropriate interface methods
 
-from inspect import getmembers, ismethod
+from inspect import Parameter, getmembers, ismethod
 from typing import Any, Dict, List
 
-from dao.core.signature.signature_factory import SignatureFactory
+from typeguard import CollectionCheckStrategy, TypeCheckError, check_type
+
+from dao.core.signature import Signature, SignatureFactory
 
 
 class Router:
@@ -14,7 +16,7 @@ class Router:
     method signatures to intelligently route DAO calls to the best matching implementation.
     It supports:
     - Multiple data stores with different interfaces
-    - Primary and fallback interface selection
+    - Primary and secondary interface selection
     - Signature-based method matching
     - Custom method registration via @register decorator
 
@@ -33,7 +35,7 @@ class Router:
         # Route table: list of dictionaries containing method metadata and signatures
         self.routes: List[Dict[str, Any]] = []
 
-    def choose_route(self, arg_signature, data_store: str, confs: Dict[str, Any]) -> Dict[str, Any]:
+    def choose_route(self, args: Dict[str, Any], data_store: str, confs: Dict[str, Any]) -> Dict[str, Any]:
         """Select the best matching route for the given arguments and data store.
 
         This method filters available routes and finds the first (best) matching method
@@ -41,7 +43,7 @@ class Router:
         table creation.
 
         Args:
-            arg_signature: The argument signature created from method arguments.
+            args: The Methods args provided in the DAO call
             data_store (str): The data store identifier for the operation.
             confs (Dict[str, Any]): Configuration options for routing.
 
@@ -52,13 +54,13 @@ class Router:
             RuntimeError: If no compatible method is found for the given signature.
         """
         # Filter routes for this data store, action, and argument length
-        search_space = self.filter_routes(data_store, arg_signature.len_all_args, self.action)
+        search_space = self.filter_routes(data_store, len(args))
 
         # Find and return the first matching route
-        route = self.get_route(search_space, arg_signature, confs)
+        route = self.get_route(search_space, args, confs)
         return route
 
-    def filter_routes(self, data_store: str, arg_length: int, action: str) -> List[Dict[str, Any]]:
+    def filter_routes(self, data_store: str, arg_length: int) -> List[Dict[str, Any]]:
         """Filter routes based on data store, action, and argument count.
 
         Routes are filtered to match:
@@ -100,16 +102,13 @@ class Router:
             if method_name.startswith(self.action):
                 predicated_methods.append(method)
             # Check if the method is registered with matching action
-            elif (
-                getattr(method, "__dao_register__", False) is True
-                and getattr(method, "__dao_register_params__") == self.action
-            ):
+            elif getattr(method, "__dao_register_action__", None) == self.action:
                 predicated_methods.append(method)
 
         return predicated_methods
 
     def get_route(
-        self, search_space: List[Dict[str, Any]], argument_signature, confs: Dict[str, Any]
+        self, search_space: List[Dict[str, Any]], args: Dict[str, Any], confs: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Find the first compatible route from the search space.
 
@@ -118,7 +117,7 @@ class Router:
 
         Args:
             search_space (List[Dict]): Pre-filtered list of candidate routes.
-            argument_signature: The argument signature to match against.
+            args: The Methods args provided in the DAO call
             confs (Dict[str, Any]): Configuration options.
 
         Returns:
@@ -132,7 +131,7 @@ class Router:
             raise RuntimeError("No methods available for the specified data store and action")
 
         for route in search_space:
-            if argument_signature.is_compatible(route["signature"]):
+            if self._is_compatible_route(route, args) and self._matches_conditions(route, args):
                 return route
 
         raise RuntimeError(f"No compatible method found for action '{self.action}'")
@@ -163,7 +162,8 @@ class Router:
         self.routes.extend(new_routes)
         self._sort_routes()
 
-    def _create_route_entries(self, interface_object, methods: List, data_store: str) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _create_route_entries(interface_object, methods: List, data_store: str) -> List[Dict[str, Any]]:
         """Create route entries for all methods and their signature combinations.
 
         This is the core route generation logic. For each method:
@@ -187,9 +187,7 @@ class Router:
 
         for method in methods:
             # Generate all signature variants for this method
-            signatures = SignatureFactory().create_method_signature(method)
-            if not isinstance(signatures, list):
-                signatures = [signatures]
+            signatures = SignatureFactory().create_method_signatures(method)
 
             # Create a route entry for each signature variant
             for signature in signatures:
@@ -201,6 +199,7 @@ class Router:
                     "signature": signature,
                     "length_non_var_args": signature.len_non_var_args,
                     "length_all_args": signature.len_all_args,
+                    "when": getattr(method, "__dao_when__", {}),
                 }
                 routes.append(route_entry)
 
@@ -212,7 +211,6 @@ class Router:
         Routes are sorted by:
         1. identifier (data store) - primary grouping
         2. length_non_var_args - descending (prefer exact matches)
-        3. preference - ascending (lower preference values have priority)
         4. length_all_args - ascending (prefer fewer total args)
 
         This sort order ensures that when filtering by data store and method type,
@@ -224,7 +222,102 @@ class Router:
         self.routes.sort(
             key=lambda r: (
                 r["identifier"],
-                -r["length_non_var_args"],  # Descending: more specific first
-                r["length_all_args"],  # Ascending: fewer args first
+                -r["length_non_var_args"],
+                r["length_all_args"],
             )
         )
+
+    @staticmethod
+    def _is_compatible_route(route: Dict[str, Any], args: Dict[str, Any]) -> bool:
+        """Check if these arguments are compatible with a target method signature.
+
+        @when condition keys that are absent from the method's declared parameters
+        are pure routing hints — they must be excluded from structural and type
+        checks so they don't inflate the argument count or cause spurious mismatches.
+
+        Args:
+            route: The full route dict (contains signature and when conditions).
+            args: The arguments provided in the DAO call.
+
+        Returns:
+            bool: True if arguments are compatible with the method.
+        """
+        signature = route["signature"]
+
+        # Exclude @when keys that are not declared on the method — they are
+        # routing hints only and must not affect structural or type matching.
+        hint_only_keys = set(route.get("when", {}).keys()) - set(signature.parameters.keys())
+        effective_args = {k: v for k, v in args.items() if k not in hint_only_keys}
+
+        # Check structural compatibility
+        if not Router._check_structure(signature, effective_args):
+            return False
+
+        # Check type compatibility
+        return Router._check_types(signature, effective_args)
+
+    @staticmethod
+    def _check_structure(signature: Signature, args: Dict[str, Any]) -> bool:
+        """Verify that all required parameters are present.
+
+        Args:
+            signature: The target method signature.
+            args: The arguments provided in the DAO call.
+
+        Returns:
+            bool: True if all required parameters are provided.
+        """
+        # If target doesn't have varargs, argument count must match exactly
+        if not signature.has_var_args and signature.len_all_args != len(args):
+            return False
+
+        # Check that all required arguments are present
+        return set(signature.non_var_args).issubset(set(args))
+
+    @staticmethod
+    def _check_types(signature: Signature, args: Dict[str, Any]) -> bool:
+        """Verify that provided argument types match target type annotations.
+
+        Uses typeguard with ALL_ITEMS collection strategy so every element in
+        a collection is checked — not just the first — giving deterministic
+        results even with inheritance hierarchies.
+
+        Args:
+            signature: The target method signature.
+            args: The arguments provided in the DAO call.
+
+        Returns:
+            bool: True if all types are compatible.
+        """
+        for param_name, target_param in signature.parameters.items():
+            if target_param.annotation == Parameter.empty:
+                continue
+            try:
+                check_type(
+                    args[param_name],
+                    target_param.annotation,
+                    collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+                )
+            except TypeCheckError:
+                return False
+        return True
+
+    @staticmethod
+    def _matches_conditions(route: Dict[str, Any], args) -> bool:
+        """Check if provided argument values satisfy all ``@when`` conditions.
+
+        When a method is decorated with ``@when({"key": value})``, the router
+        only selects it if every condition is met by the caller's arguments.
+        Methods with no ``@when`` decorator always pass this check.
+
+        Args:
+            route: The route dictionary containing the ``'when'`` criteria.
+            args: The arguments provided in the DAO call.
+
+        Returns:
+            bool: True if all conditions are satisfied (or none were declared).
+        """
+        for param_name, expected_value in route.get("when", {}).items():
+            if args.get(param_name) != expected_value:
+                return False
+        return True
