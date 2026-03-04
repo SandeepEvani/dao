@@ -202,6 +202,8 @@ name = "dao"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "boto3" },
+    { name = "botocore" },
     { name = "makefun" },
     { name = "typeguard" },
 ]
@@ -225,6 +227,8 @@ example = [
 
 [package.metadata]
 requires-dist = [
+    { name = "boto3", specifier = ">=1.42.21" },
+    { name = "botocore", specifier = ">=1.42.21" },
     { name = "makefun", specifier = ">=1.16.0" },
     { name = "typeguard", specifier = ">=4.5.1" },
 ]
