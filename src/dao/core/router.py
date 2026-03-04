@@ -2,11 +2,12 @@
 # Routes data access operations to appropriate interface methods
 
 from inspect import Parameter, getmembers, ismethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, get_args, get_origin
 
 from typeguard import CollectionCheckStrategy, TypeCheckError, check_type
 
 from dao.core.signature import Signature, SignatureFactory
+from dao.data_object import DataObject
 
 
 class Router:
@@ -25,13 +26,14 @@ class Router:
         routes (List[Dict]): Route table containing method metadata and signatures for fast lookup.
     """
 
-    def __init__(self, action: str) -> None:
+    def __init__(self, action: str, data_object_identifier: str = "data_object") -> None:
         """Initialize the Router with an action type.
 
         Args:
             action (str): The data access action this router handles (e.g., 'read', 'write').
         """
         self.action = action
+        self.data_object_identifier = data_object_identifier
         # Route table: list of dictionaries containing method metadata and signatures
         self.routes: List[Dict[str, Any]] = []
 
@@ -71,7 +73,6 @@ class Router:
         Args:
             data_store (str): Data store identifier to filter by.
             arg_length (int): Number of arguments provided to the DAO method.
-            action (str): Action type (read, write, run, etc.).
 
         Returns:
             List[Dict[str, Any]]: Filtered routes matching the criteria.
@@ -112,8 +113,7 @@ class Router:
     ) -> Dict[str, Any]:
         """Find the first compatible route from the search space.
 
-        Routes are pre-sorted by preference, so the first match is the best match.
-        Compatibility is determined by the argument signature's is_compatible method.
+        Routes are pre-sorted type specificity so the first match is the best match.
 
         Args:
             search_space (List[Dict]): Pre-filtered list of candidate routes.
@@ -162,14 +162,14 @@ class Router:
         self.routes.extend(new_routes)
         self._sort_routes()
 
-    @staticmethod
-    def _create_route_entries(interface_object, methods: List, data_store: str) -> List[Dict[str, Any]]:
+    def _create_route_entries(self, interface_object, methods: List, data_store: str) -> List[Dict[str, Any]]:
         """Create route entries for all methods and their signature combinations.
 
         This is the core route generation logic. For each method:
         1. Get method metadata (type, preference, class name)
         2. Generate all possible signatures for the method
         3. Create route entry for each signature variant
+        4. Extract concrete parameter types for type-specificity sorting
 
         The resulting routes are pre-sorted by preference to enable efficient
         first-match semantics in choose_route.
@@ -191,19 +191,83 @@ class Router:
 
             # Create a route entry for each signature variant
             for signature in signatures:
-                route_entry = {
-                    "identifier": data_store,
-                    "interface_class": interface_class,
-                    "method": method,
-                    "method_name": method.__name__,
-                    "signature": signature,
-                    "length_non_var_args": signature.len_non_var_args,
-                    "length_all_args": signature.len_all_args,
-                    "when": getattr(method, "__dao_when__", {}),
-                }
-                routes.append(route_entry)
+                for object_type in self._extract_param_types(signature, self.data_object_identifier):
+                    route_entry = {
+                        "identifier": data_store,
+                        "interface_class": interface_class,
+                        "method": method,
+                        "method_name": method.__name__,
+                        "signature": signature,
+                        "length_non_var_args": signature.len_non_var_args,
+                        "length_all_args": signature.len_all_args,
+                        "when": getattr(method, "__dao_when__", {}),
+                        "data_object_type": object_type,
+                    }
+                    routes.append(route_entry)
 
         return routes
+
+    @staticmethod
+    def _extract_param_types(signature: Signature, parameter: str) -> List[type]:
+        """Extract concrete types from a specific named parameter in the signature.
+
+        Looks up the given ``parameter`` by name, then resolves its annotation
+        to concrete types — unwrapping ``Union`` and ``Optional`` to their members.
+        Returns an empty list if the parameter is absent or unannotated.
+
+        Args:
+            signature: The method signature to extract types from.
+            parameter: The name of the parameter to resolve types for.
+
+        Returns:
+            List[type]: Concrete types found for the specified parameter.
+        """
+        param = signature.parameters.get(parameter)
+        annotation = param.annotation if param is not None else Parameter.empty
+        return Router._resolve_concrete_types(annotation)
+
+    @staticmethod
+    def _resolve_concrete_types(annotation) -> List[type]:
+        """Resolve an annotation to a list of concrete types.
+
+        - No annotation / ``None`` → ``[DataObject]``
+        - ``Union[A, B, None]`` / ``Optional[A]`` → recurse into each member,
+          including ``NoneType``
+        - Bare type (``SomeClass``) → ``[annotation]``
+        - Parameterised generic or special form (``List[int]``, ``Literal[...]``,
+          etc.) → ``[annotation]``  (kept as-is; MRO depth resolves to 0
+          for non-class forms, which is safe)
+        - Anything else → ``[DataObject]``
+        """
+        if annotation is None or annotation is Parameter.empty:
+            return [DataObject]
+
+        if get_origin(annotation) is Union:
+            types: List[type] = []
+            for member in get_args(annotation):
+                types.extend(Router._resolve_concrete_types(member))
+            return types or [DataObject]
+
+        if isinstance(annotation, type):
+            return [annotation]
+
+        # Parameterised generic (List[int], Dict[str, int], …) — keep as-is
+        if get_origin(annotation) is not None:
+            return [annotation]
+
+        return [DataObject]
+
+    @staticmethod
+    def _mro_depth(t) -> int:
+        """Return the MRO depth of *t*, or 0 if *t* does not support .mro().
+
+        Bare types (``int``, ``DataObject``, ``NoneType``) have an MRO;
+        parameterized generics (``List[int]``) do not.
+        """
+        try:
+            return len(t.mro())
+        except (AttributeError, TypeError):
+            return 0
 
     def _sort_routes(self) -> None:
         """Sort routes by preference for efficient first-match routing.
@@ -211,6 +275,7 @@ class Router:
         Routes are sorted by:
         1. identifier (data store) - primary grouping
         2. length_non_var_args - descending (prefer exact matches)
+        3. MRO depth of data_object_type - descending (prefer more specific subclass annotations)
         4. length_all_args - ascending (prefer fewer total args)
 
         This sort order ensures that when filtering by data store and method type,
@@ -223,6 +288,7 @@ class Router:
             key=lambda r: (
                 r["identifier"],
                 -r["length_non_var_args"],
+                -self._mro_depth(r.get("data_object_type")),
                 r["length_all_args"],
             )
         )

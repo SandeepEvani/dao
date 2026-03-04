@@ -122,7 +122,7 @@ catalog = FileCatalog(
 )
 
 # Get data object using fully qualified name
-customer_data = catalog.get_data_object("raw.customer")
+customer_data = catalog.get("raw.customer")
 
 # Use DAO
 dao = DataAccessObject()

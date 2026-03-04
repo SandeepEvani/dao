@@ -30,9 +30,9 @@ def main():
     dao = DataAccessObject()
 
     # Get DataObjects for each layer
-    customers_raw = catalog.get_data_object("bronze.customers_raw")
-    customers_clean = catalog.get_data_object("silver.customers_clean")
-    customer_360 = catalog.get_data_object("gold.customer_360")
+    customers_raw = catalog.get("bronze.customers_raw")
+    customers_clean = catalog.get("silver.customers_clean")
+    customer_360 = catalog.get("gold.customer_360")
 
     # BRONZE: Ingest raw data (as-is from source)
     raw_data = {"customer_id": "C001", "name": "Alice", "email": "alice@example.com"}

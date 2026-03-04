@@ -64,7 +64,7 @@ class DataAccessor:
         self.action = self.name or function.__name__
 
         self.signature = signature(function)
-        self.router = Router(action=self.action)
+        self.router = Router(action=self.action, data_object_identifier=self.data_object)
 
     def __get__(self, instance, owner):
         """Retrieve the accessor function when accessed as a descriptor.
