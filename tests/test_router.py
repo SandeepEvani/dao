@@ -3,12 +3,13 @@
 # filtering, get_route, sort, and edge cases.
 # choose_route tests live in test_router_choose_route.py
 
-from typing import List
+from typing import List, Optional, Union
 from unittest.mock import MagicMock
 
 import pytest
 
 from dao.core.router import Router
+from dao.data_object import DataObject
 from dao.decorators import register
 
 # ---------------------------------------------------------------------------
@@ -114,6 +115,14 @@ class TestRouterInit:
         r1.routes.append({"identifier": "s3"})
         assert r2.routes == [], "Routes should not be shared between Router instances"
 
+    def test_default_data_object_identifier(self):
+        router = Router("read")
+        assert router.data_object_identifier == "data_object"
+
+    def test_custom_data_object_identifier(self):
+        router = Router("read", data_object_identifier="obj")
+        assert router.data_object_identifier == "obj"
+
 
 # ---------------------------------------------------------------------------
 # 2. _list_methods_with_predicate
@@ -198,6 +207,7 @@ class TestCreateRoutesFromInterfaceObject:
             "signature",
             "length_non_var_args",
             "length_all_args",
+            "data_object_type",
         }
         for route in router.routes:
             assert required_keys.issubset(route.keys()), f"Missing keys in route: {route}"
@@ -248,6 +258,106 @@ class TestCreateRoutesFromInterfaceObject:
         assert non_var_lengths == sorted(non_var_lengths, reverse=True), (
             "Routes must be sorted descending by non_var_args length"
         )
+
+    def test_data_object_type_set_for_bare_annotation(self):
+        """A bare type annotation on data_object should set data_object_type directly."""
+
+        class _Obj:
+            pass
+
+        class Iface:
+            def read_obj(self, data_object: _Obj) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+        assert all(r["data_object_type"] is _Obj for r in router.routes)
+
+    def test_data_object_type_defaults_to_data_object_when_param_missing(self):
+        """Methods without a data_object param get DataObject as the type."""
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", ReadInterface())
+        csv_routes = [r for r in router.routes if r["method_name"] == "read_csv"]
+        assert all(r["data_object_type"] is DataObject for r in csv_routes)
+
+    def test_optional_annotation_creates_two_routes_per_variant(self):
+        """Optional[X] = Union[X, None] should create 2 route entries per
+        signature variant (one for X, one for NoneType)."""
+
+        class _Obj:
+            pass
+
+        class Iface:
+            def read_opt(self, data_object: Optional[_Obj]) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+        routes = [r for r in router.routes if r["method_name"] == "read_opt"]
+        types = {r["data_object_type"] for r in routes}
+        assert _Obj in types
+        assert type(None) in types
+        assert len(routes) == 2
+
+    def test_union_annotation_creates_route_per_member(self):
+        """Union[A, B] should create 2 route entries."""
+
+        class _A:
+            pass
+
+        class _B:
+            pass
+
+        class Iface:
+            def read_either(self, data_object: Union[_A, _B]) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+        routes = [r for r in router.routes if r["method_name"] == "read_either"]
+        types = {r["data_object_type"] for r in routes}
+        assert types == {_A, _B}
+
+    def test_union_with_optional_param_route_count(self):
+        """Union[A, B] × 2 signature variants (with/without limit) = 4 routes."""
+
+        class _A:
+            pass
+
+        class _B:
+            pass
+
+        class Iface:
+            def read_either(self, data_object: Union[_A, _B], limit: int = 10) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+        routes = [r for r in router.routes if r["method_name"] == "read_either"]
+        assert len(routes) == 4
+
+    def test_custom_data_object_identifier_extracts_from_correct_param(self):
+        """Router with data_object_identifier='obj' should extract types from 'obj'."""
+
+        class _Obj:
+            pass
+
+        class Iface:
+            def read_obj(self, obj: _Obj) -> None: ...
+
+        router = Router("read", data_object_identifier="obj")
+        router.create_routes_from_interface_object("s3", Iface())
+        assert all(r["data_object_type"] is _Obj for r in router.routes)
+
+    def test_custom_identifier_falls_back_when_param_not_named_data_object(self):
+        """When data_object_identifier='obj' but method has 'data_object', it
+        should fall back to DataObject (the 'obj' param doesn't exist)."""
+
+        class _Obj:
+            pass
+
+        class Iface:
+            def read_obj(self, data_object: _Obj) -> None: ...
+
+        router = Router("read", data_object_identifier="obj")
+        router.create_routes_from_interface_object("s3", Iface())
+        assert all(r["data_object_type"] is DataObject for r in router.routes)
 
 
 # ---------------------------------------------------------------------------
@@ -378,6 +488,117 @@ class TestSortRoutes:
         router._sort_routes()
         lengths = [r["length_non_var_args"] for r in router.routes]
         assert lengths == [3, 2, 1]
+
+    def test_mro_depth_sorts_subclass_before_parent(self):
+        """Within the same arg-count bucket, subclass (deeper MRO) sorts first."""
+
+        class _Parent:
+            pass
+
+        class _Child(_Parent):
+            pass
+
+        class Iface:
+            def read_parent(self, data_object: _Parent) -> None: ...
+            def read_child(self, data_object: _Child) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+
+        one_arg = [r for r in router.routes if r["length_non_var_args"] == 1]
+        names = [r["method_name"] for r in one_arg]
+        # read_child routes should appear before read_parent routes
+        first_child = next(i for i, n in enumerate(names) if n == "read_child")
+        last_parent = max(i for i, n in enumerate(names) if n == "read_parent")
+        assert first_child < last_parent
+
+    def test_mro_depth_three_levels(self):
+        """A → B → C: routes should be sorted C, B, A within same bucket."""
+
+        class _A:
+            pass
+
+        class _B(_A):
+            pass
+
+        class _C(_B):
+            pass
+
+        class Iface:
+            def read_a(self, data_object: _A) -> None: ...
+            def read_b(self, data_object: _B) -> None: ...
+            def read_c(self, data_object: _C) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+        types = [r["data_object_type"] for r in router.routes]
+        assert types.index(_C) < types.index(_B) < types.index(_A)
+
+    def test_mro_sort_does_not_break_structural_sort(self):
+        """MRO sort must not override the primary structural sort (non_var_args).
+        A 3-arg route with shallow MRO must still come before a 1-arg route
+        with deep MRO."""
+
+        class _Parent:
+            pass
+
+        class _Child(_Parent):
+            pass
+
+        class _GrandChild(_Child):
+            pass
+
+        class Iface:
+            def read_deep(self, data_object: _GrandChild) -> None: ...
+            def read_many(self, data_object: _Parent, x: int, y: str) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+
+        # read_many has 3 non_var_args → should sort before read_deep (1 non_var_arg)
+        three_arg = [r for r in router.routes if r["length_non_var_args"] == 3]
+        one_arg = [r for r in router.routes if r["length_non_var_args"] == 1]
+        assert three_arg  # sanity
+        assert one_arg
+        # All 3-arg routes should come before all 1-arg routes
+        last_three = max(router.routes.index(r) for r in three_arg)
+        first_one = min(router.routes.index(r) for r in one_arg)
+        assert last_three < first_one
+
+    def test_mro_sort_with_optional_expansion(self):
+        """Optional[Child] routes (MRO=3 for Child, MRO=2 for NoneType) should
+        sort correctly among bare Parent routes (MRO=2)."""
+
+        class _Parent:
+            pass
+
+        class _Child(_Parent):
+            pass
+
+        class Iface:
+            def read_parent(self, data_object: _Parent) -> None: ...
+            def read_child(self, data_object: Optional[_Child]) -> None: ...
+
+        router = Router("read")
+        router.create_routes_from_interface_object("s3", Iface())
+
+        one_arg = [r for r in router.routes if r["length_non_var_args"] == 1]
+        # The _Child route (MRO=3) must come before the _Parent route (MRO=2)
+        child_idx = next(i for i, r in enumerate(one_arg) if r["data_object_type"] is _Child)
+        parent_idx = next(i for i, r in enumerate(one_arg) if r["data_object_type"] is _Parent)
+        assert child_idx < parent_idx
+
+    def test_manual_routes_without_data_object_type_dont_crash(self):
+        """Manually injected routes missing data_object_type should sort
+        by the remaining keys without raising."""
+        router = Router("read")
+        router.routes = [
+            {"identifier": "s3", "length_non_var_args": 1, "length_all_args": 1},
+            {"identifier": "s3", "length_non_var_args": 2, "length_all_args": 2},
+        ]
+        router._sort_routes()  # Must not raise
+        lengths = [r["length_non_var_args"] for r in router.routes]
+        assert lengths == [2, 1]
 
 
 # ---------------------------------------------------------------------------
