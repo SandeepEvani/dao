@@ -36,8 +36,8 @@ def main():
     )
 
     # Discover available data (useful for data governance)
-    stores = catalog.get_data_store_configs()  # noqa
-    objects = catalog.get_data_object_configs()  # noqa
+    stores = catalog.data_store_configs  # noqa
+    objects = catalog.data_object_configs  # noqa
 
     # Get DataObjects by fully-qualified name ("store.object")
     # No need to manually create DataStore or DataObject instances!
@@ -66,10 +66,6 @@ def main():
         data={"customer_id": "C001", "lifetime_value": 1500.00, "segment": "premium"},
         data_object=customer_360,
     )
-
-    # Check if data exists
-    exists = catalog.check_data_object_exists("bronze.customers_raw")  # True # noqa
-    not_exists = catalog.check_data_object_exists("bronze.nonexistent")  # False # noqa
 
 
 if __name__ == "__main__":
