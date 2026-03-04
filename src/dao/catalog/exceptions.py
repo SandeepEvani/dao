@@ -12,3 +12,7 @@ class DataObjectNotFoundError(CatalogException):
 
 class InvalidCatalogFormatError(CatalogException):
     """Raised when catalog format is invalid."""
+
+
+class GlueTranslationError(CatalogException):
+    """Raised when a Glue table response cannot be translated to DataObject properties."""

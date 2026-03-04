@@ -7,6 +7,7 @@ from logging import getLogger
 from typing import Any, Dict, Generator
 
 from dao.data_object import DataObject
+from dao.data_object import registry as _data_object_registry
 from dao.data_store import DataStoreFactory
 
 from .exceptions import DataObjectNotFoundError, DataStoreNotFoundError
@@ -20,6 +21,18 @@ class BaseCatalog(ABC):
     Subclasses supply configuration by implementing ``_load_data_store_configs``
     and ``_load_data_object_configs``.  Everything else — factory creation,
     data-object resolution, FQN parsing — lives here.
+
+    **Object-type resolution**
+
+    If a data-object's properties contain a ``"type"`` key (e.g.
+    ``"type": "TableObject"``), :meth:`get` will look up that name in the
+    :class:`~dao.data_object.registry.DataObjectRegistry` and instantiate
+    the corresponding subclass instead of the base ``DataObject``.
+
+    Custom subclasses can be registered with::
+
+        from dao.data_object import register_data_object
+        register_data_object("MyCustomObject", MyCustomObject)
     """
 
     def __init__(self):
@@ -44,11 +57,17 @@ class BaseCatalog(ABC):
         return self._factory.get(name)
 
     def get(self, fully_qualified_name: str) -> DataObject:
-        """Resolve an exact ``"store.object"`` FQN into a ``DataObject``."""
+        """Resolve an exact ``"store.object"`` FQN into a ``DataObject``.
+
+        If the resolved properties contain a ``"type"`` key the corresponding
+        :class:`~dao.data_object.DataObject` subclass is looked up in the
+        global :data:`~dao.data_object.registry` and used for instantiation.
+        """
         data_store, data_object = self._parse_fully_qualified_name(fully_qualified_name)
         data_store_instance = self._factory.get(data_store)
         properties = self._resolve_data_object_properties(data_store, data_object)
-        return DataObject(name=data_object, data_store=data_store_instance, **properties)
+        object_cls = _data_object_registry.get(properties.pop("type", None))
+        return object_cls(name=data_object, data_store=data_store_instance, **properties)
 
     def search(self, pattern: str) -> Generator[DataObject, None, None]:
         """Yield every ``DataObject`` whose FQN matches the regex *pattern*."""
