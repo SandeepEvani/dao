@@ -13,6 +13,11 @@ class DataObject:
     _name = None
     _data_store = None
 
+    @property
+    def enrichment_exclude(self) -> frozenset:
+        """Attribute names that enrichment must never inject into method call args."""
+        return frozenset({"name", "data_store", "identifier"})
+
     def __init__(self, name: str, data_store: DataStore, identifier: Optional[str] = None, **properties):
         """Initializes the `Data Object` object.
 
