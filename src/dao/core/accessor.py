@@ -36,7 +36,7 @@ class DataAccessor:
         name: Optional[str] = None,
         doc: Optional[str] = None,
         data_object: Optional[str] = None,
-    ):
+    ) -> None:
         self.function = function
         self.action = name or function.__name__
         self.doc = doc or function.__doc__
@@ -46,7 +46,8 @@ class DataAccessor:
         self._initialized: set = set()
         self._callable = self._build_callable()
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Delegate to the signature-stamped callable."""
         return self._callable(*args, **kwargs)
 
     def _build_callable(self) -> Callable:
@@ -62,7 +63,7 @@ class DataAccessor:
             doc=self.doc,
         )
 
-    def _execute(self, **kwargs):
+    def _execute(self, **kwargs: Any) -> Any:
         """Route the call and invoke the matched interface method."""
         method_args, conf_args = _segregate_args(kwargs)
 
@@ -85,9 +86,8 @@ class DataAccessor:
 
         return route["method"](**call_args)
 
-    def _ensure_routes(self, data_store, interface_class: Optional[str]) -> None:
+    def _ensure_routes(self, data_store: Any, interface_class: Optional[str]) -> None:
         """Register routes for this data_store + interface_class pair if not yet done."""
-
         interface = data_store.get_interface_object(interface_class)
         self.router.create_routes_from_interface_object(data_store.name, interface)
 
@@ -100,7 +100,7 @@ def _segregate_args(args: dict, prefix: str = "dao_") -> tuple[dict, dict]:
     return method_args, conf_args
 
 
-def _enrich_from_data_object(method_args: dict, route: dict, data_object) -> dict:
+def _enrich_from_data_object(method_args: dict, route: dict, data_object: Any) -> dict:
     """Fill declared optional params from DataObject properties.
 
     Loops over the route's signature parameters and injects any that:

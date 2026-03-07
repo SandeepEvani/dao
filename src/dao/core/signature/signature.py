@@ -18,7 +18,7 @@ class Signature:
     handles parameter metadata extraction.
     """
 
-    def __init__(self, signature: inspect.Signature):
+    def __init__(self, signature: inspect.Signature) -> None:
         """Initialize signature analysis.
 
         Args:

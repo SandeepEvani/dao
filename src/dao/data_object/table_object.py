@@ -1,6 +1,6 @@
 # table_object.py
 # represents the table data object
-from typing import Optional
+from typing import Any, Optional
 
 from dao.data_store import DataStore
 
@@ -8,8 +8,10 @@ from .data_object import DataObject
 
 
 class TableObject(DataObject):
-    """A Table Object is a representation of the tabular data structures stored in
-    various data stores such as databases, warehouses, and data lakes."""
+    """A Table Object is a representation of the tabular data structures.
+
+    Stored in various data stores such as databases, warehouses, and data lakes.
+    """
 
     def __init__(
         self,
@@ -18,8 +20,8 @@ class TableObject(DataObject):
         schema: Optional[str] = None,
         columns: Optional[str] = None,
         primary_keys: Optional[str] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initializes the Data Store class.
 
         :param name: Identifier of the table object
@@ -28,7 +30,6 @@ class TableObject(DataObject):
         :param schema: schema the table contains
         :param primary_keys:
         """
-
         super().__init__(name, data_store)
         self.schema = schema
         self.columns = columns
@@ -36,5 +37,5 @@ class TableObject(DataObject):
         for attribute, value in kwargs.items():
             setattr(self, attribute, value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Table({self.data_store.name}.{self.name})"

@@ -17,7 +17,7 @@ class FileCatalog(BaseCatalog):
         data_store_config_location: str,
         data_object_config_location: str,
         package: str = None,
-    ):
+    ) -> None:
         self._ds_source = data_store_config_location
         self._do_source = data_object_config_location
         self._package = package
@@ -31,10 +31,12 @@ class FileCatalog(BaseCatalog):
 
     @property
     def data_store_configs(self) -> Dict[str, Any]:
+        """Return the loaded data-store configurations."""
         return self._data_store_configs
 
     @property
     def data_object_configs(self) -> Dict[str, Any]:
+        """Return the loaded data-object configurations."""
         return self._data_object_configs
 
 

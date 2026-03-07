@@ -20,7 +20,7 @@ def register(action: str) -> Callable:
             should be registered under.
     """
 
-    def internal_wrapper(method):
+    def internal_wrapper(method: Callable) -> Callable:
         setattr(method, "__dao_register_action__", action)
         return method
 
@@ -44,7 +44,7 @@ def when(conditions: dict) -> Callable:
             must all be satisfied for this method to be chosen.
     """
 
-    def internal_wrapper(method):
+    def internal_wrapper(method: Callable) -> Callable:
         setattr(method, "__dao_when__", conditions)
         return method
 
