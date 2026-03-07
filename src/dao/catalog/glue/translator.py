@@ -42,7 +42,7 @@ class GlueTableTranslator:
         )
     """
 
-    def __init__(self, extractors: Optional[List[FieldExtractor]] = None):
+    def __init__(self, extractors: Optional[List[FieldExtractor]] = None) -> None:
         if extractors is not None:
             self._extractors: Dict[str, FieldExtractor] = {e.name: e for e in extractors}
         else:

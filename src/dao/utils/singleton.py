@@ -2,6 +2,9 @@
 # Contains helper functions to create singleton objects
 
 
+from typing import Any
+
+
 class _SingletonMeta(type):
     """Metaclass that enforces singleton behaviour per class.
 
@@ -12,7 +15,7 @@ class _SingletonMeta(type):
 
     _instances: dict = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         if cls not in cls._instances:
             # Create the instance and run __init__ exactly once.
             cls._instances[cls] = super().__call__(*args, **kwargs)

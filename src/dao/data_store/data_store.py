@@ -9,7 +9,8 @@ class _DefaultInitializer(NamedTuple):
     class_: type
     args: dict
 
-    def initialize(self):
+    def initialize(self) -> Any:
+        """Create and return the interface instance."""
         return self.class_(**self.args)
 
 
@@ -18,7 +19,8 @@ class _LazyInitializer(NamedTuple):
     class_: str
     args: dict
 
-    def initialize(self):
+    def initialize(self) -> Any:
+        """Import and instantiate the interface class lazily."""
         interface_module = import_module(self.module)
         interface_class = getattr(interface_module, self.class_)
 
@@ -26,8 +28,7 @@ class _LazyInitializer(NamedTuple):
 
 
 class DataStore:
-    """The Data Store class is a virtual representation of the Data Store present in the
-    working environment to which we read and write data from.
+    """The Data Store class is a virtual representation of the Data Store.
 
     A Data store will have a primary interface class and optional secondary interface
     classes to access the data stored within.
@@ -35,7 +36,7 @@ class DataStore:
 
     _name = None
 
-    def __init__(self, name: str, **properties):
+    def __init__(self, name: str, **properties: Any) -> None:
         """Initializes the Data Store Object.
 
         :param name: Name of the Data Store
@@ -51,23 +52,31 @@ class DataStore:
             setattr(self, attribute, value)
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """The unique name of this data store."""
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: str) -> None:
         if self._name is not None:
             raise ValueError("Attribute `name` is already set, cannot modify `name`")
         self._name = value
 
-    def set_interface_class(self, *, class_: type, args: Optional[Dict[str, Any]] = None, primary=False) -> None:
-        """Registers the primary interface class with the data store object The primary
-        interface class/object is used when there are no other specified parameters.
+    def set_interface_class(
+        self,
+        *,
+        class_: type,
+        args: Optional[Dict[str, Any]] = None,
+        primary: bool = False,
+    ) -> None:
+        """Register an interface class with the data store.
 
-        :param args:
-        :param primary:
-        :param class_: The class object which is used as the interface
-        :return: None
+        The primary interface class is used when there are no other specified parameters.
+
+        Args:
+            class_: The class object which is used as the interface.
+            args: Constructor arguments for the interface class.
+            primary: Whether this is the primary interface.
         """
         args = args or {}
 
@@ -80,14 +89,15 @@ class DataStore:
     def set_interface_class_lazy(
         self, *, module: str, class_: str, args: Optional[Dict[str, Any]] = None, primary: Optional[bool] = False
     ) -> None:
-        """Registers the primary interface class with the data store object The primary
-        interface class/object is used when there are no other specified parameters.
+        """Register an interface class for lazy loading.
 
-        :param args:
-        :param primary:
-        :param module:
-        :param class_: The class object which is used as the interface
-        :return: None
+        The module is imported and the class instantiated on first use.
+
+        Args:
+            module: Fully qualified module path.
+            class_: Class name within the module.
+            args: Constructor arguments for the interface class.
+            primary: Whether this is the primary interface.
         """
         args = args or {}
 
@@ -97,7 +107,7 @@ class DataStore:
             self._primary_interface_class = class_
         self._interface_classes[class_] = _LazyInitializer(module=module, class_=class_, args=args)
 
-    def get_interface_object(self, class_: Optional[str] = None):
+    def get_interface_object(self, class_: Optional[str] = None) -> Any:
         """Retrieves the interface object based on the class name provided.
 
         :param class_: The desired interface class name

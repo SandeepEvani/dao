@@ -1,289 +1,160 @@
 # accessor.py
-# Defines the data access logic
+# Decorator that wires a DAO method to the routing + execution pipeline.
 
 from __future__ import annotations
 
 from functools import partial
-from inspect import signature
+from inspect import Parameter, signature
 from types import MethodType
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from makefun import create_function
 
 from dao.core.router import Router
-from dao.data_store import DataStore
 
 
 class DataAccessor:
-    """Data descriptor that provides data access logic for DAO methods.
+    """Decorator that turns a DAO method stub into a fully routed data-access call.
 
-    This class handles the routing and execution of data access operations
-    by coordinating with data stores, routers, and signature processors.
+    Each decorated method gets its own ``DataAccessor`` instance with an
+    independent router and initialized-interface registry — no shared class-level
+    state between different actions or DAO classes.
+
+    Usage::
+
+        @data_accessor
+        def read(self, data_object: DataObject, **kwargs): ...
+
+        @data_accessor(data_object="source")
+        def move(self, source: DataObject, destination: DataObject, **kwargs): ...
     """
-
-    _accessor_function: Optional[Callable] = None
-    _initialized = set()
 
     def __init__(
         self,
-        function: Callable = None,
+        function: Callable,
         *,
         name: Optional[str] = None,
-        doc_string: Optional[str] = None,
+        doc: Optional[str] = None,
         data_object: Optional[str] = None,
-    ):
-        """Initialize the DataAccessor descriptor with configuration.
-
-        The DataAccessor is a descriptor that wraps DAO methods and handles
-        intelligent routing of data access operations to the appropriate backend
-        interface. It uses the method signature and provided arguments to route
-        calls to the best matching interface implementation.
-
-        Args:
-            function (Callable): The accessor method being decorated. This is the
-                                method from the DAO class that will be enhanced
-                                with routing and data access logic.
-            name (str, optional): Custom name for the accessor. If not provided,
-                                 uses the function's __name__. Defaults to None.
-            doc_string (str, optional): Custom documentation string that will replace
-                                       the function's docstring. Useful for
-                                       overriding or providing enhanced docs.
-                                       Defaults to None.
-            data_object (str, optional): The parameter name that contains the DataObject.
-                                        Allows flexibility for methods where data_object
-                                        is not a direct parameter (e.g., move(source, dest)
-                                        where 'source' is the data_object).
-                                        Defaults to 'data_object'.
-        """
-
+    ) -> None:
         self.function = function
-        self.name = name
-        self.doc_string = doc_string
+        self.action = name or function.__name__
+        self.doc = doc or function.__doc__
         self.data_object = data_object or "data_object"
 
-        self.action = self.name or function.__name__
-
-        self.signature = signature(function)
         self.router = Router(action=self.action, data_object_identifier=self.data_object)
+        self._initialized: set = set()
+        self._callable = self._build_callable()
 
-    def __get__(self, instance, owner):
-        """Retrieve the accessor function when accessed as a descriptor.
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Delegate to the signature-stamped callable."""
+        return self._callable(*args, **kwargs)
 
-        This method is called when the accessor is accessed as a class attribute.
-        It lazy-creates and caches the accessor function.
-
-        Args:
-            instance: The instance that the descriptor is accessed from, or None
-                     if accessed from the class itself.
-            owner: The class that owns this descriptor.
-
-        Returns:
-            For class access: The unbound accessor function.
-            For instance access: A bound method with instance context.
-        """
-        # If accessed from the class, return the unbound function
-        if instance is None:
-            return self.function
-
-        # Lazy initialization of the accessor function (created only once)
-        if self._accessor_function is None:
-            self._accessor_function = self.create_accessor_function()
-
-        return self._accessor_function
-
-    def create_accessor_function(self) -> Callable:
-        """Create and configure the accessor function with proper signature.
-
-        This method dynamically creates the accessor function using makefun's
-        create_function utility, ensuring the generated function has the same
-        signature as the original method while delegating to the _ implementation.
-
-        The function signature is extracted from the original method to maintain
-        IDE support, type hints, and docstring clarity.
-
-        Returns:
-            Callable: A dynamically created function with the proper signature
-                     that delegates to self._ for actual execution.
-
-        Notes:
-            - The returned function will have the same signature as self.function
-            - It delegates all execution to self._ which contains the core logic
-            - This enables proper IDE autocomplete and type checking
-        """
-        # Create a bound method to extract the correct signature
-        bound_method = MethodType(self.function, self)
-        method_signature = signature(bound_method)
-
-        name = self.name or self.function.__name__
-        doc = self.doc_string or self.function.__doc__
-        qual_name = self.function.__qualname__
-
-        # Dynamically create a function with the proper signature
-        # that delegates to the _ implementation
-        accessor_func = create_function(
-            func_signature=method_signature, func_impl=self._, name=name, qualname=qual_name, doc=doc
+    def _build_callable(self) -> Callable:
+        """Build a callable that mirrors the original signature but routes through the pipeline."""
+        bound = MethodType(self.function, self)
+        func_sig = signature(bound)
+        impl: Callable[..., Any] = self._execute
+        return create_function(
+            func_signature=func_sig,
+            func_impl=impl,
+            name=self.action,
+            qualname=self.function.__qualname__,
+            doc=self.doc,
         )
 
-        return accessor_func
+    def _execute(self, **kwargs: Any) -> Any:
+        """Route the call and invoke the matched interface method."""
+        method_args, conf_args = _segregate_args(kwargs)
 
-    def _(self, **provided_args):
-        """Execute the core data access logic for DAO operations.
-
-        This method orchestrates the data access flow by:
-        1. Segregating configuration from method arguments
-        2. Creating argument signatures for routing
-        3. Extracting data store information
-        4. Initializing interfaces as needed
-        5. Routing to the appropriate method
-        6. Executing and returning results
-
-        Args:
-            provided_args: Dictionary of arguments provided to the DAO method.
-
-        Returns:
-            The result of the executed data access method.
-        """
-        # Separate configuration arguments from method arguments
-        method_args, conf_args = self.segregate_args(provided_args)
-
-        # Extract data store information
-        data_store, data_class = self._extract_data_store_info(method_args, conf_args)
-
-        # Initialize interface if not already done
-        self._initialize_interface_if_needed(data_store, data_class)
-
-        # Route to the appropriate method
-        route = self._get_routed_method(method_args.copy(), data_store.name, conf_args)
-
-        # Strip @when routing-hint keys that the method does not declare as parameters.
-        # If the method does declare the key (with or without a default), pass it through
-        # as normal — only pure routing hints that are absent from the signature are dropped.
-        method_params = set(signature(route["method"]).parameters.keys())
-        routing_hints = set(route.get("when", {}).keys()) - method_params
-        call_args = {k: v for k, v in method_args.items() if k not in routing_hints}
-
-        # Execute and return the result
-        return route["method"](**call_args)
-
-    def _extract_data_store_info(self, method_args: dict, conf_args: dict) -> tuple:
-        """Extract data store name and class from method arguments.
-
-        Args:
-            method_args: Dictionary of method arguments.
-            conf_args: Dictionary of configuration arguments.
-
-        Returns:
-            Tuple of (data_store_name, data_class) where:
-                data_store_name (str): Name of the data store.
-                data_class (str): Optional specific interface class name.
-        """
-        # Get the data_object parameter (maybe named differently)
         data_object = method_args.get(self.data_object)
         if not data_object:
-            raise ValueError(f"data_object parameter '{self.data_object}' not found in method arguments")
+            raise ValueError(f"Required parameter '{self.data_object}' not found in call arguments.")
 
-        # Extract data store information from the data object
         data_store = data_object.data_store
-        data_class = conf_args.get("dao_interface_class")
+        interface_class = conf_args.get("dao_interface_class")
+        self._ensure_routes(data_store, interface_class)
 
-        return data_store, data_class
+        route = self.router.choose_route(method_args.copy(), data_store.name, conf_args)
 
-    def _initialize_interface_if_needed(self, data_store: DataStore, data_class: str) -> None:
-        """Initialize interface and routes if not already initialized.
+        # Enrich call args with DataObject properties for declared optional params
+        call_args = _enrich_from_data_object(method_args, route, data_object)
 
-        Args:
-            data_store: Name of the data store.
-            data_class: Optional specific interface class name.
-        """
-        # Check if this combination has already been initialized
-        cache_key = (data_store, data_class, self.action)
-        if cache_key in self._initialized:
-            return
+        # Strip @when keys that were routing hints (not declared on the method)
+        routing_hints = set(route.get("when", {}).keys()) - set(route["signature"].parameters.keys())
+        call_args = {k: v for k, v in call_args.items() if k not in routing_hints}
 
-        interface_object = data_store.get_interface_object(data_class)
+        return route["method"](**call_args)
 
-        # Create routes from the interface object
-        self.router.create_routes_from_interface_object(data_store.name, interface_object)
+    def _ensure_routes(self, data_store: Any, interface_class: Optional[str]) -> None:
+        """Register routes for this data_store + interface_class pair if not yet done."""
+        interface = data_store.get_interface_object(interface_class)
+        self.router.create_routes_from_interface_object(data_store.name, interface)
 
-        # Mark as initialized
-        self._initialized.add(cache_key)
 
-    def _get_routed_method(self, argument_signature, data_store: str, conf_args: dict) -> dict:
-        """Get the appropriate route based on routing logic.
+def _segregate_args(args: dict, prefix: str = "dao_") -> tuple[dict, dict]:
+    """Split args into method args and ``dao_``-prefixed config args."""
+    method_args, conf_args = {}, {}
+    for k, v in args.items():
+        (conf_args if k.startswith(prefix) else method_args)[k] = v
+    return method_args, conf_args
 
-        Args:
-            argument_signature: Signature of the provided arguments.
-            data_store: Name of the data store.
-            conf_args: Configuration arguments.
 
-        Returns:
-            dict: The matched route, including the method and its @when conditions.
-        """
-        return self.router.choose_route(argument_signature, data_store, conf_args)
+def _enrich_from_data_object(method_args: dict, route: dict, data_object: Any) -> dict:
+    """Fill declared optional params from DataObject properties.
 
-    @staticmethod
-    def segregate_args(args, segregation_prefix="dao_"):
-        """Segregate configuration arguments from method arguments.
+    Loops over the route's signature parameters and injects any that:
+    - have a default (are optional),
+    - were not supplied by the caller,
+    - are not private or listed in ``data_object.enrichment_exclude``, and
+    - exist as a non-None attribute on the DataObject.
+    """
+    call_args = dict(method_args)
+    if data_object is None:
+        return call_args
 
-        Args:
-            args: Dictionary of arguments to segregate.
-            segregation_prefix: Prefix used to identify configuration arguments.
+    exclude = data_object.enrichment_exclude
 
-        Returns:
-            Tuple of (method_args, conf_args) where:
-                method_args: Regular method arguments.
-                conf_args: Configuration arguments with the specified prefix.
-        """
-        confs = {}
-        method_args = {}
+    for param_name, param in route["signature"].parameters.items():
+        if param_name in call_args:
+            continue
+        if param.kind in (Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD):
+            continue
+        if param.default is Parameter.empty:
+            continue
+        if param_name.startswith("_") or param_name in exclude:
+            continue
+        value = getattr(data_object, param_name, None)
+        if value is not None:
+            call_args[param_name] = value
 
-        # Segregates the args based on the `segregation_prefix`
-        for arg_key in args:
-            if arg_key.startswith(segregation_prefix):
-                confs.update({arg_key: args[arg_key]})
-            else:
-                method_args.update({arg_key: args[arg_key]})
-
-        return method_args, confs
+    return call_args
 
 
 def data_accessor(
     function: Callable = None,
     *,
     name: Optional[str] = None,
-    doc_string: Optional[str] = None,
+    doc: Optional[str] = None,
     data_object: Optional[str] = None,
-) -> partial[DataAccessor] | DataAccessor:
-    """Decorator factory to create a DataAccessor descriptor for DAO methods.
+) -> DataAccessor | partial:
+    """Decorator that turns a DAO method into a routed data-access call.
 
-    This decorator transforms a method into a DataAccessor descriptor that handles
-    intelligent routing of data access operations to the appropriate backend interface.
-    It supports both direct decoration and parameterized decoration patterns.
+    Can be used bare or with keyword arguments::
+
+        @data_accessor
+        def read(self, data_object: DataObject, **kwargs): ...
+
+        @data_accessor(data_object="source")
+        def move(self, source: DataObject, destination: DataObject, **kwargs): ...
 
     Args:
-        function (Callable, optional): The accessor method being decorated. If None,
-                                       returns a partial function for parameterized
-                                       decoration. Defaults to None.
-        name (str, optional): Custom name for the accessor. If not provided,
-                             the function's name is used. Defaults to None.
-        doc_string (str, optional): Custom documentation string for the accessor.
-                                   Useful for overriding or enhancing the function's
-                                   docstring. Defaults to None.
-        data_object (str, optional): Specifies which parameter contains the data_object.
-                                    Useful for methods where data_object is not a direct
-                                    parameter (e.g., move/copy methods). Defaults to None.
-
-    Returns:
-        Callable: Either a DataAccessor instance (when function is provided) or a
-                 partial function for parameterized decoration (when function is None).
+        function: Function to decorate.
+        name: Override the action name (defaults to the function name).
+        doc: Override the docstring.
+        data_object: Name of the parameter that holds the DataObject
+            (defaults to ``"data_object"``).
     """
-    # Handle parameterized decoration: @data_accessor(name="custom_name")
-    # When parameters are provided, function is None, so return a partial
-    # function with the parameters bound, ready to receive the actual function
     if function is None:
-        return partial(DataAccessor, name=name, doc_string=doc_string, data_object=data_object)
-
-    # Handle direct decoration: @data_accessor
-    # When called without parameters, function contains the method being decorated
-    # Create and return the DataAccessor descriptor with all parameters
-    return DataAccessor(function, name=name, doc_string=doc_string, data_object=data_object)
+        return partial(DataAccessor, name=name, doc=doc, data_object=data_object)
+    return DataAccessor(function, name=name, doc=doc, data_object=data_object)

@@ -28,7 +28,7 @@ class DataObjectRegistry:
         cls = registry.get("TableObject")  # → TableObject class
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._registry: Dict[str, Type[DataObject]] = {}
 
     def register(self, name: str, cls: Type[DataObject]) -> None:
