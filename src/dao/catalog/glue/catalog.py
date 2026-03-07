@@ -61,7 +61,7 @@ class GlueCatalog(BaseCatalog):
         aws_region: Optional[str] = None,
         aws_profile: Optional[str] = None,
         translator: Optional[GlueTableTranslator] = None,
-    ):
+    ) -> None:
         if aws_profile and aws_access_key_id:
             raise ValueError("Ambiguous authentication: supply either 'aws_profile' or 'aws_access_key_id', not both.")
 
@@ -133,7 +133,7 @@ class GlueCatalog(BaseCatalog):
             self._cache.clear()
 
 
-def _serialize_config(config, **kwargs) -> str:
+def _serialize_config(config: dict, **kwargs: Any) -> str:
     """Serialize a config dict/list to a JSON string for storage in Glue parameters."""
     try:
         kwargs.setdefault("sort_keys", True)
@@ -142,7 +142,7 @@ def _serialize_config(config, **kwargs) -> str:
         raise ValueError(f"Failed to serialize config: {e}") from e
 
 
-def _deserialize_config(config_str: str):
+def _deserialize_config(config_str: str) -> Any:
     """Deserialize a JSON string from Glue parameters back to a config dict/list."""
     try:
         return json.loads(config_str)

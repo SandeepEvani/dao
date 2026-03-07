@@ -30,7 +30,8 @@ class Router:
         """Initialize the Router with an action type.
 
         Args:
-            action (str): The data access action this router handles (e.g., 'read', 'write').
+            action: The data access action this router handles (e.g., 'read', 'write').
+            data_object_identifier: The parameter name for the DataObject argument.
         """
         self.action = action
         self.data_object_identifier = data_object_identifier
@@ -83,7 +84,7 @@ class Router:
             if (route["identifier"] == data_store and route["length_non_var_args"] <= arg_length)
         ]
 
-    def _list_methods_with_predicate(self, interface_object) -> List:
+    def _list_methods_with_predicate(self, interface_object: Any) -> List:
         """Extract methods from interface that match the action predicate.
 
         Finds all methods on the interface object that either:
@@ -126,7 +127,6 @@ class Router:
         Raises:
             RuntimeError: If no compatible method is found in the search space.
         """
-
         if not search_space:
             raise RuntimeError("No methods available for the specified data store and action")
 
@@ -136,7 +136,7 @@ class Router:
 
         raise RuntimeError(f"No compatible method found for action '{self.action}'")
 
-    def create_routes_from_interface_object(self, data_store: str, interface_object) -> None:
+    def create_routes_from_interface_object(self, data_store: str, interface_object: Any) -> None:
         """Create and register routes from a single interface object.
 
         Extracts all applicable methods from the interface and creates route entries
@@ -162,7 +162,7 @@ class Router:
         self.routes.extend(new_routes)
         self._sort_routes()
 
-    def _create_route_entries(self, interface_object, methods: List, data_store: str) -> List[Dict[str, Any]]:
+    def _create_route_entries(self, interface_object: Any, methods: List, data_store: str) -> List[Dict[str, Any]]:
         """Create route entries for all methods and their signature combinations.
 
         This is the core route generation logic. For each method:
@@ -227,7 +227,7 @@ class Router:
         return Router._resolve_concrete_types(annotation)
 
     @staticmethod
-    def _resolve_concrete_types(annotation) -> List[type]:
+    def _resolve_concrete_types(annotation: Any) -> List[type]:
         """Resolve an annotation to a list of concrete types.
 
         - No annotation / ``None`` → ``[DataObject]``
@@ -258,7 +258,7 @@ class Router:
         return [DataObject]
 
     @staticmethod
-    def _mro_depth(t) -> int:
+    def _mro_depth(t: Any) -> int:
         """Return the MRO depth of *t*, or 0 if *t* does not support .mro().
 
         Bare types (``int``, ``DataObject``, ``NoneType``) have an MRO;
@@ -368,7 +368,7 @@ class Router:
                 return False
         return True
 
-    def _matches_conditions(self, route: Dict[str, Any], args) -> bool:
+    def _matches_conditions(self, route: Dict[str, Any], args: Dict[str, Any]) -> bool:
         """Check if ``@when`` conditions are satisfied by caller args or DataObject attributes.
 
         For each condition key the lookup order is:

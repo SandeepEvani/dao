@@ -39,7 +39,7 @@ class SignatureFactory:
         return [Signature(sig) for sig in possible_signatures]
 
     @staticmethod
-    def _create_parameter(name: str, value, is_defined_in_signature: bool) -> inspect.Parameter:
+    def _create_parameter(name: str, value: Any, is_defined_in_signature: bool) -> inspect.Parameter:
         """Create an inspect.Parameter with appropriate kind and type annotation.
 
         Args:

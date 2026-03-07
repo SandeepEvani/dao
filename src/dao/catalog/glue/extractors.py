@@ -27,6 +27,7 @@ class LocationExtractor(FieldExtractor):
     name = "location"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract S3 location from the storage descriptor."""
         sd = table.get("StorageDescriptor", {})
         return sd.get("Location")
 
@@ -37,6 +38,7 @@ class ColumnsExtractor(FieldExtractor):
     name = "columns"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract column definitions from the storage descriptor."""
         sd = table.get("StorageDescriptor", {})
         return sd.get("Columns")
 
@@ -47,6 +49,7 @@ class PartitionKeysExtractor(FieldExtractor):
     name = "partition_keys"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract partition key definitions."""
         keys = table.get("PartitionKeys")
         return keys if keys else None
 
@@ -57,6 +60,7 @@ class ClassificationExtractor(FieldExtractor):
     name = "classification"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract the classification from table parameters."""
         return table.get("Parameters", {}).get("classification")
 
 
@@ -66,6 +70,7 @@ class InputFormatExtractor(FieldExtractor):
     name = "input_format"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract input format from the storage descriptor."""
         sd = table.get("StorageDescriptor", {})
         return sd.get("InputFormat")
 
@@ -76,6 +81,7 @@ class OutputFormatExtractor(FieldExtractor):
     name = "output_format"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract output format from the storage descriptor."""
         sd = table.get("StorageDescriptor", {})
         return sd.get("OutputFormat")
 
@@ -86,6 +92,7 @@ class SerDeExtractor(FieldExtractor):
     name = "serde_info"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract SerDe info from the storage descriptor."""
         sd = table.get("StorageDescriptor", {})
         return sd.get("SerdeInfo")
 
@@ -96,6 +103,7 @@ class TableTypeExtractor(FieldExtractor):
     name = "table_type"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract the Glue table type."""
         return table.get("TableType")
 
 
@@ -105,6 +113,7 @@ class CompressedExtractor(FieldExtractor):
     name = "compressed"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract compression flag from the storage descriptor."""
         sd = table.get("StorageDescriptor", {})
         return sd.get("Compressed")
 
@@ -115,6 +124,7 @@ class RawParametersExtractor(FieldExtractor):
     name = "parameters"
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Extract the full Parameters dict as a copy."""
         params = table.get("Parameters")
         if params is None:
             return None
@@ -139,6 +149,7 @@ class ObjectTypeExtractor(FieldExtractor):
     }
 
     def extract(self, table: Dict[str, Any]) -> Any:
+        """Map Glue TableType to a DataObject subclass name."""
         table_type = table.get("TableType", "")
         return self.MAPPING.get(table_type, "DataObject")
 
@@ -146,7 +157,7 @@ class ObjectTypeExtractor(FieldExtractor):
 class _LambdaExtractor(FieldExtractor):
     """Adapter that wraps a plain callable as a :class:`FieldExtractor`."""
 
-    def __init__(self, name: str, func: Callable[[Dict[str, Any]], Any]):
+    def __init__(self, name: str, func: Callable[[Dict[str, Any]], Any]) -> None:
         self.name = name
         self._func = func
 

@@ -8,7 +8,7 @@ from typing import Any, Dict, Generator
 
 from dao.data_object import DataObject
 from dao.data_object import registry as _data_object_registry
-from dao.data_store import DataStoreFactory
+from dao.data_store import DataStore, DataStoreFactory
 
 from .exceptions import DataObjectNotFoundError, DataStoreNotFoundError
 
@@ -35,7 +35,7 @@ class BaseCatalog(ABC):
         register_data_object("MyCustomObject", MyCustomObject)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._data_store_configs: Dict[str, Any] = self._load_data_store_configs()
         self._data_object_configs: Dict[str, Any] = self._load_data_object_configs()
 
@@ -52,7 +52,7 @@ class BaseCatalog(ABC):
         """Return the full data-object configuration dictionary."""
         ...
 
-    def get_data_store(self, name: str):
+    def get_data_store(self, name: str) -> "DataStore":
         """Return the ``DataStore`` instance for *name*."""
         return self._factory.get(name)
 

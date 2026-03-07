@@ -13,10 +13,11 @@ class DataStoreFactory:
     _store_configs = {}
 
     @classmethod
-    def load_configs(cls, data_store_configs: Dict[str, Dict]):
-        """
-        :param data_store_configs:
-        :return:
+    def load_configs(cls, data_store_configs: Dict[str, Dict]) -> None:
+        """Load data store configurations into the factory.
+
+        Args:
+            data_store_configs: Mapping of store names to their config dicts.
         """
         cls._store_configs.clear()
         cls._store_configs.update(data_store_configs)
@@ -24,15 +25,13 @@ class DataStoreFactory:
     @classmethod
     def _create_data_store_instance(cls, data_store: str) -> DataStore:
         """Creates the data store instance."""
-
         data_store_config = cls._store_configs.get(data_store)
         data_store_instance = DataStore(data_store, **(data_store_config.get("properties", {})))
         return data_store_instance
 
     @classmethod
-    def _initialize_data_store(cls, data_store: str):
-        """Initializes the data store object."""
-
+    def _initialize_data_store(cls, data_store: str) -> DataStore:
+        """Initialize the data store object."""
         data_store_instance = cls._create_data_store_instance(data_store)
 
         data_store_config = cls._store_configs.get(data_store)
@@ -53,14 +52,14 @@ class DataStoreFactory:
 
         return data_store_instance
 
-    def validate(self):
-        """ """
+    def validate(self) -> bool:
+        """Validate that all configured modules are importable."""
         # TODO: Build a validation  block to check if all the
         #  modules are present at the specified locations without importing them
         return True
 
     @classmethod
-    def get(cls, data_store: str):
+    def get(cls, data_store: str) -> DataStore:
         """Returns the data store object associated to the provided data_store name."""
         if data_store in cls._stores:
             return cls._stores.get(data_store)
