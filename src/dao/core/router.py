@@ -368,13 +368,17 @@ class Router:
                 return False
         return True
 
-    @staticmethod
-    def _matches_conditions(route: Dict[str, Any], args) -> bool:
-        """Check if provided argument values satisfy all ``@when`` conditions.
+    def _matches_conditions(self, route: Dict[str, Any], args) -> bool:
+        """Check if ``@when`` conditions are satisfied by caller args or DataObject attributes.
 
-        When a method is decorated with ``@when({"key": value})``, the router
-        only selects it if every condition is met by the caller's arguments.
-        Methods with no ``@when`` decorator always pass this check.
+        For each condition key the lookup order is:
+
+        1. **Caller args** — ``args.get(key)`` (explicit always wins).
+        2. **DataObject attributes** — ``getattr(data_object, key)`` (catalog /
+           config metadata).
+
+        If neither source provides the key the condition fails and the route is
+        skipped.  Methods with no ``@when`` decorator always pass this check.
 
         Args:
             route: The route dictionary containing the ``'when'`` criteria.
@@ -383,7 +387,28 @@ class Router:
         Returns:
             bool: True if all conditions are satisfied (or none were declared).
         """
-        for param_name, expected_value in route.get("when", {}).items():
-            if args.get(param_name) != expected_value:
-                return False
+        conditions = route.get("when", {})
+        if not conditions:
+            return True
+
+        data_object = args.get(self.data_object_identifier)
+
+        for key, expected_value in conditions.items():
+            # Phase 1: check caller-supplied args (explicit always wins)
+            if key in args:
+                if args[key] != expected_value:
+                    return False
+                continue
+
+            # Phase 2: check DataObject attributes
+            if data_object is not None:
+                actual = getattr(data_object, key, None)
+                if actual is not None:
+                    if actual != expected_value:
+                        return False
+                    continue
+
+            # Key not found in either source — condition fails
+            return False
+
         return True
